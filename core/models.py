@@ -261,13 +261,13 @@ class Pago(models.Model):
     estado = models.CharField(max_length=15, choices=ESTADOS, default='REVISION')
 
     def save(self, *args, **kwargs):
-        if self.monto_bolivares and self.tasa_bcv_usada:
+        if not self.monto_dolares and self.monto_bolivares and self.tasa_bcv_usada:
             calculo = self.monto_bolivares / self.tasa_bcv_usada
             self.monto_dolares = calculo.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Pago {self.referencia} - {self.metodo.nombre} - ${self.monto_dolares}"
+        return f"Pago {self.referencia} - {self.metodo.nombre_banco} - ${self.monto_dolares}"
     
 class CierreMes(models.Model):
     mes = models.IntegerField()
