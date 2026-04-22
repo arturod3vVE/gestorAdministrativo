@@ -63,54 +63,64 @@ def portal_socio(request):
     if not hasattr(request.user, 'socio'):
         return redirect('dashboard')
 
-    socio_actual = request.user.socio
-    hoy = timezone.now()
-
-    # Traemos los avisos con sus detalles y pagos de un solo golpe a la memoria
-    avisos = AvisoCobro.objects.filter(socio=socio_actual).prefetch_related('detalles', 'pagos').order_by('-anio', '-mes')
-
+    socio = request.user.socio
     config = ConfigSistema.objects.first()
-    # Mantenemos la tasa como Decimal
     tasa_actual = config.tasa_bcv if config else Decimal('36.0000')
+    
+    # 1. OBTENER TODOS LOS MOVIMIENTOS
+    # Cargos (Lo que se le cobra)
+    cargos = ItemAviso.objects.filter(aviso__socio=socio).select_related('aviso')
+    
+    # Abonos (Lo que ha pagado y está aprobado)
+    abonos = Pago.objects.filter(aviso__socio=socio, estado='APROBADO').select_related('metodo')
+    
+    # Pagos en revisión (Para avisarle que el dinero está "en camino")
+    en_revision = Pago.objects.filter(aviso__socio=socio, estado='REVISION').aggregate(total=Sum('monto_dolares'))['total'] or Decimal('0.00')
 
-    # Constantes útiles para operaciones
-    CERO = Decimal('0.00')
-    CENTAVO = Decimal('0.01')
-    total_deuda_usd = CERO
+    # 2. CONSTRUIR EL HISTORIAL CRONOLÓGICO
+    movimientos = []
 
-    for aviso in avisos:
-        # Matemática rápida en memoria usando Decimal puro
-        # Usamos generator expressions y le pasamos 'CERO' como valor inicial del sum()
-        facturado = sum((d.monto_dolares for d in aviso.detalles.all()), CERO)
-        pagado_aprobado = sum((p.monto_dolares for p in aviso.pagos.all() if p.estado == 'APROBADO'), CERO)
-        pagado_revision = sum((p.monto_dolares for p in aviso.pagos.all() if p.estado == 'REVISION'), CERO)
-        
-        saldo_real = facturado - pagado_aprobado
-        saldo_por_cubrir = facturado - pagado_aprobado - pagado_revision
+    for c in cargos:
+        movimientos.append({
+            'fecha': c.aviso.fecha_emision,
+            'concepto': f"{c.descripcion} ({c.aviso.periodo_formateado})",
+            'monto': c.monto_dolares,
+            'tipo': 'CARGO',
+            'referencia': f"Aviso #{c.aviso.id}"
+        })
 
-        # Atributos limpios para el HTML
-        aviso.monto_total_usd = facturado
-        aviso.saldo_pendiente = saldo_real
-        aviso.en_revision = pagado_revision > CERO
-        
-        aviso.esta_pagado = (aviso.estado == 'PAGADO') or (saldo_real <= CERO)
-        aviso.puede_pagar = not aviso.esta_pagado and (saldo_por_cubrir >= CENTAVO)
+    for a in abonos:
+        movimientos.append({
+            'fecha': a.fecha_reporte.date(),
+            'concepto': f"Pago Reportado - {a.metodo.nombre_banco}",
+            'monto': a.monto_dolares,
+            'tipo': 'ABONO',
+            'referencia': f"Ref: {a.referencia}"
+        })
 
-        if saldo_real > CERO:
-            total_deuda_usd += saldo_real
+    # Ordenar por fecha
+    movimientos.sort(key=lambda x: x['fecha'])
 
-    # Cálculo seguro de la deuda total en bolívares con redondeo comercial exacto
-    total_deuda_bs = (total_deuda_usd * tasa_actual).quantize(CENTAVO, rounding=ROUND_HALF_UP)
+    # 3. CALCULAR SALDO ACUMULADO PASO A PASO
+    saldo_acumulado = Decimal('0.00')
+    for m in movimientos:
+        if m['tipo'] == 'CARGO':
+            saldo_acumulado += m['monto']
+        else:
+            saldo_acumulado -= m['monto']
+        m['saldo_despues'] = saldo_acumulado
+
+    # Datos finales para el resumen superior
+    total_deuda_bs = (saldo_acumulado * tasa_actual).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
     context = {
-        'socio': socio_actual,
-        'avisos': avisos,
-        'total_deuda': total_deuda_usd,
+        'socio': socio,
+        'movimientos': reversed(movimientos), # Mostramos lo más reciente primero en la tabla
+        'saldo_total': saldo_acumulado,
         'total_deuda_bs': total_deuda_bs,
+        'en_revision': en_revision,
         'tasa': tasa_actual,
-        'fecha_actual': hoy,
-        'mes_actual': hoy.month,
-        'anio_actual': hoy.year,
+        'avisos_pendientes': AvisoCobro.objects.filter(socio=socio).exclude(estado='PAGADO').order_by('-anio', '-mes')
     }
     return render(request, 'core/portal_socio.html', context)
 
