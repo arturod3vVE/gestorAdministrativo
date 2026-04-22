@@ -1,0 +1,223 @@
+/* ==========================================================================
+   1. ESTRUCTURA Y CONTENEDORES GLOBALES
+   ========================================================================== */
+.dashboard-container {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+.portal-bg {
+    background-color: #f8f9fc;
+    min-height: 100vh;
+}
+
+/* ==========================================================================
+   2. TARJETAS Y PANELES (CARDS)
+   ========================================================================== */
+.card-metric {
+    border-radius: 12px !important;
+    border: none !important;
+    transition: transform 0.2s ease;
+}
+
+.card-metric:hover {
+    transform: translateY(-3px);
+}
+
+/* Bordes de color para métricas */
+.border-left-primary   { border-left: 5px solid #4e73df !important; }
+.border-left-success   { border-left: 5px solid #1cc88a !important; }
+.border-left-danger    { border-left: 5px solid #e74a3b !important; }
+.border-left-warning   { border-left: 5px solid #f6c23e !important; }
+
+/* Tarjetas específicas del Portal */
+.balance-card { border-radius: 16px; }
+.border-danger-left { border-left: 5px solid #e74a3b !important; }
+.border-success-left { border-left: 5px solid #1cc88a !important; }
+
+.status-card { border-radius: 16px; position: relative; overflow: hidden; }
+.rate-card { border-radius: 16px; }
+
+/* ==========================================================================
+   3. COMPONENTES VISUALES: PÍLDORAS E INSIGNIAS
+   ========================================================================== */
+/* Píldora clásica para listas (Admin) */
+.unidad-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fc;
+    color: #4e73df;
+    font-weight: 800;
+    border: 2px solid #eaecf4;
+    border-radius: 10px;
+    width: 50px;
+    height: 30px;
+    font-size: 0.8rem;
+}
+
+/* Insignia Premium (Encabezado Portal Socio) */
+.unidad-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+    color: white;
+    font-weight: 800;
+    font-size: 1.2rem;
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(78, 115, 223, 0.3);
+}
+
+/* Pastillas de Estado (Pills - Modernas) */
+.status-pill {
+    display: inline-block;
+    padding: 0.35rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+.pill-success { background-color: rgba(28, 200, 138, 0.15); color: #1cc88a; }
+.pill-warning { background-color: rgba(246, 194, 62, 0.15); color: #d39e00; }
+.pill-danger { background-color: rgba(231, 74, 59, 0.15); color: #e74a3b; }
+
+/* Círculo para íconos grandes */
+.icon-circle {
+    width: 60px;
+    height: 60px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ==========================================================================
+   4. TABLAS Y RESPONSIVIDAD
+   ========================================================================== */
+.table-custom-container {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(78, 115, 223, 0.02);
+}
+
+/* Fuerzan el scroll horizontal en móviles para evitar que se rompa el diseño */
+.table-mobile-scroll { min-width: 700px; }
+.custom-table { min-width: 600px; }
+
+/* ==========================================================================
+   5. BOTONES Y EFECTOS HOVER
+   ========================================================================== */
+/* Botón "Tuerca" de Admin */
+.btn-action-hover {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-action-hover:hover {
+    background-color: #4e73df !important;
+    color: white !important;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(78, 115, 223, 0.3) !important;
+}
+
+.btn-action-hover i { line-height: 0; }
+
+/* Botones de acción del Portal (Pagar / Imprimir) */
+.action-btn { transition: transform 0.2s, box-shadow 0.2s; }
+.action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(78, 115, 223, 0.3) !important; }
+
+.action-icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.action-icon:hover { transform: scale(1.1); background-color: #1cc88a !important; color: white !important; }
+
+.btn-pay-all { transition: transform 0.2s; }
+.btn-pay-all:hover { transform: translateY(-3px); }
+
+/* ==========================================================================
+   6. ANIMACIONES (PULSOS DE ESTATUS)
+   ========================================================================== */
+.badge-dot {
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.pulse-green {
+    width: 10px;
+    height: 10px;
+    background: #1cc88a;
+    border-radius: 50%;
+    box-shadow: 0 0 0 rgba(28, 200, 138, 0.4);
+    animation: pulse-animation 2s infinite;
+}
+
+.pulse-gray {
+    width: 10px;
+    height: 10px;
+    background: #858796;
+    border-radius: 50%;
+}
+
+@keyframes pulse-animation {
+    0% { box-shadow: 0 0 0 0 rgba(28, 200, 138, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(28, 200, 138, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(28, 200, 138, 0); }
+}
+
+/* Utilidades extras */
+.tracking-wide { letter-spacing: 1px; }
+
+/* ==========================================================================
+   7. MEDIA QUERIES (AJUSTES PARA MÓVILES)
+   ¡IMPORTANTE: Esto siempre debe ir al final!
+   ========================================================================== */
+
+/* Tablets y Móviles grandes */
+@media (max-width: 768px) {
+    .portal-header-info {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .portal-balance-container {
+        margin-top: 1rem;
+        width: 100%;
+    }
+}
+
+/* Móviles pequeños */
+@media (max-width: 576px) {
+    .h3 { font-size: 1.25rem; }
+    .h2-md { font-size: 1.5rem; }
+    .card-body { padding: 1rem !important; }
+
+    /* Ajuste de métricas en Admin */
+    .col-mobile-6 {
+        flex: 0 0 auto;
+        width: 50%;
+    }
+
+    /* Ajuste de Insignia en Portal Socio */
+    .unidad-badge {
+        width: 50px;
+        height: 50px;
+        font-size: 1rem;
+        border-radius: 12px;
+    }
+}

@@ -1,0 +1,83 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4">
+        <h2 class="fw-bold text-dark"><i class="fas fa-user-cog text-primary me-2"></i>Configuración de Perfil</h2>
+        <p class="text-muted">Gestiona tus datos de contacto y seguridad del portal.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold text-primary"><i class="fab fa-whatsapp me-2"></i>Datos de Contacto</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-muted">WhatsApp Actual</label>
+                            <div class="input-group">
+                                {{ form_tlf.prefijo_tlf }}
+                                {{ form_tlf.cuerpo_tlf }}
+                            </div>
+                            <small class="text-muted mt-2 d-block">Asegúrate de que este número tenga WhatsApp activo para recibir notificaciones.</small>
+                        </div>
+                        <button type="submit" name="btn_telefono" class="btn btn-primary w-100 rounded-pill fw-bold py-2">
+                            Actualizar Teléfono
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                <div class="card-header bg-dark text-white py-3 border-0">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-lock me-2 text-warning"></i>Seguridad de la Cuenta</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        {% for field in form_pass %}
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <div class="text-danger small">{{ field.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        <button type="submit" name="btn_password" class="btn btn-dark w-100 rounded-pill fw-bold py-2">
+                            Cambiar Contraseña
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const idTlf = document.getElementById('id_cuerpo_tlf');
+        if(idTlf) {
+            idTlf.addEventListener('input', function() {
+                if(this.value.length > 7) this.value = this.value.slice(0, 7);
+            });
+        }
+    });
+</script>
+
+<style>
+    /* Ajuste para los inputs de Django PasswordChangeForm */
+    input[type="password"], input[type="text"], select {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        background-color: #f8f9fc;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800 fw-bold">
+        <i class="fas fa-file-invoice-dollar text-primary me-2"></i>Control de Pagos
+    </h1>
+    <button class="btn btn-sm btn-outline-secondary shadow-sm rounded-pill px-4" onclick="window.print()">
+        <i class="fas fa-print me-1"></i> Imprimir Reporte
+    </button>
+</div>
+
+<div class="row mb-4">
+    <div class="col-xl-4 col-md-6">
+        <div class="card bg-success text-white shadow-sm h-100 border-0" style="border-radius: 12px;">
+            <div class="card-body py-3">
+                <div class="text-uppercase small fw-bold opacity-75 mb-1">Total Ingresos Aprobados</div>
+                <div class="display-6 fw-bold mb-0">${{ total_usd|floatformat:2|default:"0,00" }}</div>
+                <small class="opacity-75">≈ Bs. {{ total_bs|floatformat:2|default:"0,00" }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0" style="border-radius: 15px; overflow: hidden;">
+    <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="m-0 fw-bold text-primary">Bitácora de Transacciones</h6>
+        <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill">
+            Total: {{ pagos|length }} registros
+        </span>
+    </div>
+    
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="tablaPagos" width="100%">
+                <thead class="bg-light text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <tr>
+                        <th class="ps-4">Fecha</th>
+                        <th>Socio / Unidad</th>
+                        <th>Método / Ref</th>
+                        <th class="text-end">Monto (Bs)</th>
+                        <th class="text-end">Monto ($)</th>
+                        <th class="text-center">Estado</th>
+                        <th class="pe-4 text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pago in pagos %}
+                    <tr>
+                        <td class="ps-4 text-muted small">
+                            <i class="far fa-calendar-alt me-1"></i>
+                            {{ pago.fecha_pago|date:"d/m/Y H:i"|default:"Reciente" }}
+                        </td>
+                        
+                        <td>
+                            <div class="fw-bold text-dark">{{ pago.deuda.socio.nombre }}</div>
+                            <span class="badge bg-dark text-white rounded-pill px-2">Unidad {{ pago.deuda.socio.unidad }}</span>
+                        </td>
+                        
+                        <td>
+                            <div class="small fw-bold text-dark">{{ pago.metodo.nombre|default:"Transferencia" }}</div>
+                            <span class="text-primary small" style="font-family: monospace;">Ref: {{ pago.referencia }}</span>
+                        </td>
+                        
+                        <td class="text-end text-dark">Bs. {{ pago.monto_pagado_bs|floatformat:2 }}</td>
+                        <td class="text-end fw-bold text-success">${{ pago.monto_pagado_usd|floatformat:2 }}</td>
+                        
+                        <td class="text-center">
+                            {% if pago.estado == 'APROBADO' %}
+                                <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3">Aprobado</span>
+                            {% elif pago.estado == 'RECHAZADO' %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger rounded-pill px-3">Rechazado</span>
+                            {% else %}
+                                <span class="badge bg-warning-subtle text-dark border border-warning rounded-pill px-3">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="pe-4 text-center">
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                
+                                {% if pago.comprobante %}
+                                    <a href="{{ pago.comprobante.url }}" target="_blank" class="btn btn-sm btn-outline-info rounded-circle" title="Ver Capture">
+                                        <i class="fas fa-image"></i>
+                                    </a>
+                                {% endif %}
+                                
+                                {% if pago.estado == 'PENDIENTE' %}
+                                    <a href="{% url 'revision_transferencia' pago.referencia pago.deuda.socio.id %}" class="btn btn-sm btn-primary shadow-sm rounded-pill px-3">
+                                        Revisar <i class="fas fa-arrow-right ms-1"></i>
+                                    </a>
+                                {% else %}
+                                    <button class="btn btn-sm btn-light text-muted rounded-pill px-3 border" disabled>
+                                        <i class="fas fa-check-double me-1"></i> Listo
+                                    </button>
+                                {% endif %}
+                                
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-clipboard-list fa-3x mb-3 opacity-25"></i>
+                            <p>No hay pagos registrados en el sistema.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilos para Badges Suaves */
+    .bg-success-subtle { background-color: #d1e7dd; }
+    .bg-danger-subtle { background-color: #f8d7da; }
+    .bg-warning-subtle { background-color: #fff3cd; }
+    
+    /* Efecto Hover en la Tabla */
+    .table-hover tbody tr:hover { 
+        background-color: #f8f9fc; 
+        transition: background-color 0.2s ease;
+    }
+</style>
+{% endblock %}

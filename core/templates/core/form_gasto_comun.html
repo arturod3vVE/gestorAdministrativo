@@ -1,0 +1,167 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'modulo_cobranza' %}" class="text-decoration-none">Cobranza</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Registrar Gasto Colectivo</li>
+                </ol>
+            </nav>
+
+            <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+                <div class="card-header bg-white py-4 border-0 text-center">
+                    <div class="bg-primary bg-opacity-10 d-inline-flex p-3 rounded-circle mb-3">
+                        <i class="fas fa-file-invoice-dollar text-primary fa-2x"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-0">Registrar Gasto Colectivo</h3>
+                    <p class="text-muted">El monto se repartirá entre todos los socios activos.</p>
+                </div>
+                
+                <div class="card-body px-4 px-md-5 pb-5">
+                    
+                    <div class="alert alert-info border-0 rounded-pill d-flex align-items-center shadow-sm mb-4">
+                        <i class="fas fa-info-circle me-3 ms-2"></i>
+                        <div>
+                            Tasa de cambio actual: <strong>Bs. {{ config.tasa_bcv }}</strong> (BCV)
+                        </div>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" id="gastoForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark small text-uppercase">Concepto del Gasto</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-2 border-end-0 rounded-start-pill ps-3">
+                                    <i class="fas fa-tag text-muted"></i>
+                                </span>
+                                <input type="text" name="concepto" class="form-control border-2 border-start-0 rounded-end-pill shadow-none" 
+                                       placeholder="Ej: Reparación de fachada, Factura de CORPOELEC..." required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label class="form-label fw-bold text-dark small text-uppercase">Monto en Bolívares (Bs.)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-2 border-end-0 rounded-start-pill text-muted fw-bold">Bs.</span>
+                                    <input type="text" id="monto_bs_mask" class="form-control border-2 border-start-0 rounded-end-pill shadow-none text-end fw-bold" 
+                                           placeholder="0,00">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark small text-uppercase">Monto en Dólares ($)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-2 border-end-0 rounded-start-pill text-muted fw-bold">$</span>
+                                    <input type="text" id="monto_usd_mask" class="form-control border-2 border-start-0 rounded-end-pill shadow-none text-end fw-bold" 
+                                           placeholder="0,00">
+                                </div>
+                                <input type="hidden" name="monto" id="monto_real_usd">
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold text-dark small text-uppercase">Fecha de la Factura</label>
+                                <input type="date" name="fecha" class="form-control border-2 rounded-pill shadow-none" 
+                                       value="{{ fecha_actual|date:'Y-m-d' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark small text-uppercase">Soporte Digital (Imagen o PDF)</label>
+                            <input type="file" name="comprobante" class="form-control border-2 rounded-pill shadow-none" 
+                                   accept="image/*,.pdf">
+                            <div class="form-text ps-2">Adjunta el escaneo o foto para que sea visible por los socios.</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 pt-3">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold shadow py-3" id="btnSubmit">
+                                <i class="fas fa-users-cog me-2"></i> GENERAR Y DISTRIBUIR COBRO
+                            </button>
+                            <a href="{% url 'modulo_cobranza' %}" class="btn btn-link text-muted fw-bold">Cancelar operación</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4 text-muted small">
+                <i class="fas fa-shield-alt me-1"></i> Esta acción creará una deuda proporcional a cada socio activo automáticamente.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Obtener la tasa de cambio desde el servidor
+    // Usamos replace para manejar comas o puntos de la tasa
+    const TASA_BCV = parseFloat("{{ config.tasa_bcv }}".replace(',', '.'));
+
+    const inputBs = document.getElementById('monto_bs_mask');
+    const inputUsd = document.getElementById('monto_usd_mask');
+    const inputReal = document.getElementById('monto_real_usd');
+    const form = document.getElementById('gastoForm');
+    const btn = document.getElementById('btnSubmit');
+
+    // Función para dar formato visual (Miles: . y Dec: ,)
+    function formatVisual(val) {
+        return val.toLocaleString('es-ES', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    // Lógica para el campo de Bolívares
+    inputBs.addEventListener('input', function(e) {
+        let raw = e.target.value.replace(/\D/g, "");
+        if (!raw) raw = "0";
+        
+        let valBs = parseFloat(raw) / 100;
+        e.target.value = formatVisual(valBs);
+
+        // Calcular espejo en USD
+        let valUsd = valBs / TASA_BCV;
+        inputUsd.value = formatVisual(valUsd);
+        inputReal.value = valUsd.toFixed(2);
+    });
+
+    // Lógica para el campo de Dólares
+    inputUsd.addEventListener('input', function(e) {
+        let raw = e.target.value.replace(/\D/g, "");
+        if (!raw) raw = "0";
+        
+        let valUsd = parseFloat(raw) / 100;
+        e.target.value = formatVisual(valUsd);
+
+        // Calcular espejo en Bs
+        let valBs = valUsd * TASA_BCV;
+        inputBs.value = formatVisual(valBs);
+        inputReal.value = valUsd.toFixed(2);
+    });
+
+    // UX: Deshabilitar botón al enviar para evitar doble cobro
+    form.addEventListener('submit', function() {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> PROCESANDO COBROS...';
+    });
+</script>
+
+<style>
+    /* Estilos para reforzar la armonía visual */
+    .form-control:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.1);
+    }
+    .input-group-text {
+        border-width: 2px;
+    }
+    .breadcrumb-item a { color: #6c757d; font-weight: 600; }
+    .breadcrumb-item.active { color: #4e73df; font-weight: 700; }
+</style>
+{% endblock %}

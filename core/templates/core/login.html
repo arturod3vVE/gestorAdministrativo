@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso al Portal | Gestor Administrativo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --dark-bg: #222a42;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .login-card {
+            border: none;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+
+        /* DISEÑO DE LA IMAGEN */
+        .bg-login-image {
+            background: url('https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1000&auto=format&fit=crop') center center;
+            background-size: cover;
+            position: relative;
+            min-height: 250px; /* Altura para móvil */
+        }
+
+        /* Filtro elegante sobre la imagen */
+        .bg-login-image::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            background: linear-gradient(to bottom, rgba(78, 115, 223, 0.2), rgba(34, 42, 66, 0.7));
+        }
+
+        /* Estilo Desktop: Imagen a la izquierda */
+        @media (min-width: 992px) {
+            .bg-login-image {
+                min-height: 100%;
+            }
+        }
+
+        /* Efecto flotante en móvil */
+        @media (max-width: 991px) {
+            .form-container {
+                margin-top: -30px;
+                background: white;
+                border-radius: 30px 30px 0 0;
+                position: relative;
+                z-index: 10;
+            }
+        }
+
+        .form-control-user {
+            border-radius: 10rem;
+            padding: 0.75rem 1.5rem;
+            background-color: #f8f9fc;
+            border: 1px solid #d1d3e2;
+        }
+
+        .form-control-user:focus {
+            background-color: #fff;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.1);
+        }
+
+        .input-group-text {
+            background-color: #f8f9fc;
+            border: 1px solid #d1d3e2;
+        }
+
+        .btn-user {
+            border-radius: 10rem;
+            padding: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-user:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 115, 223, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-xl-10 col-lg-12 col-md-9">
+                <div class="card login-card my-5">
+                    <div class="card-body p-0">
+                        <div class="row g-0" style="min-height: 550px;">
+                            
+                            <div class="col-lg-6 bg-login-image">
+                                </div>
+                            
+                            <div class="col-lg-6 bg-white d-flex flex-column justify-content-center form-container">
+                                <div class="p-4 p-md-5">
+                                    <div class="text-center mb-4">
+                                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 70px; height: 70px;">
+                                            <i class="fas fa-bus text-primary fa-2x"></i>
+                                        </div>
+                                        <h3 class="fw-bold text-dark mb-1">¡Bienvenido!</h3>
+                                        <p class="text-muted small">Ingrese sus credenciales para continuar</p>
+                                    </div>
+                                    
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        
+                                        {% if form.errors %}
+                                        <div class="alert alert-danger border-0 shadow-sm rounded-4 small py-3 text-center mb-4 animate__animated animate__shakeX">
+                                            <i class="fas fa-exclamation-triangle me-2"></i> Usuario o contraseña incorrectos.
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="mb-3">
+                                            <div class="input-group">
+                                                <span class="input-group-text border-end-0 rounded-start-pill ps-4 text-muted">
+                                                    <i class="fas fa-user"></i>
+                                                </span>
+                                                <input type="text" name="username" class="form-control form-control-user border-start-0" 
+                                                       placeholder="Usuario..." required autofocus>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-4">
+                                            <div class="input-group">
+                                                <span class="input-group-text border-end-0 rounded-start-pill ps-4 text-muted">
+                                                    <i class="fas fa-lock"></i>
+                                                </span>
+                                                <input type="password" name="password" id="id_password" 
+                                                       class="form-control form-control-user border-start-0 border-end-0" 
+                                                       placeholder="Contraseña" required>
+                                                <button class="btn btn-light border border-start-0 rounded-end-pill pe-4 text-muted" 
+                                                        type="button" id="btnOjoLogin">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary btn-user w-100 shadow-sm">
+                                            INGRESAR AL PORTAL <i class="fas fa-arrow-right ms-2"></i>
+                                        </button>
+                                    </form>
+
+                                    <hr class="my-4">
+                                    
+                                    <div class="text-center">
+                                        <a class="small text-muted text-decoration-none" href="#">
+                                            <i class="fas fa-info-circle me-1"></i> ¿Olvidó sus datos? Contacte a soporte.
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnOjo = document.getElementById('btnOjoLogin');
+            const passInput = document.getElementById('id_password');
+            
+            if(btnOjo && passInput) {
+                btnOjo.addEventListener('click', function() {
+                    const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passInput.setAttribute('type', type);
+                    
+                    const icon = this.querySelector('i');
+                    icon.classList.toggle('fa-eye');
+                    icon.classList.toggle('fa-eye-slash');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

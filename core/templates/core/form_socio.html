@@ -1,0 +1,68 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="m-0 fw-bold"><i class="fas fa-user-plus"></i> Registrar Nuevo Socio</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Número de Unidad</label>
+                            <div class="input-group has-validation"> <span class="input-group-text"><i class="fas fa-bus"></i></span>
+                                <input type="text" name="unidad" 
+                                    class="form-control {% if form.unidad.errors %}is-invalid{% endif %}" 
+                                    placeholder="Ej: 05" 
+                                    value="{{ form.unidad.value|default:'' }}" required>
+        
+                                {% if form.unidad.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.unidad.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre y Apellido</label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Juan Pérez" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Documento de Identidad</label>
+                        <div class="input-group">
+                            {{ form.prefijo }}
+                            {{ form.cedula_num }}
+                        </div>
+                        <div class="form-text">El sistema formateará automáticamente a 9 dígitos (Ej: V012345678).</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Teléfono (WhatsApp)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fab fa-whatsapp text-success"></i></span>
+                            <input type="text" name="telefono" class="form-control" placeholder="58412..." required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">Guardar Socio</button>
+                        <a href="{% url 'transparencia' %}" class="btn btn-light border">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Este script asegura que NO se puedan pegar textos ni escribir letras en el campo de cédula
+    document.getElementById('id_cedula_num').addEventListener('input', function (e) {
+        this.value = this.value.replace(/[^0-9]/g, ''); // Reemplaza todo lo que no sea número por vacío
+    });
+</script>
+{% endblock %}

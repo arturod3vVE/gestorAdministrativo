@@ -1,0 +1,162 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 py-md-4 portal-bg">
+
+    <div class="row mb-4 align-items-center">
+        <div class="col-lg-5 mb-3 mb-lg-0">
+            <h2 class="fw-bold text-dark mb-1 h3 h2-md">
+                <i class="fas fa-cash-register text-primary me-2"></i>Gestión de Cobranza
+            </h2>
+            <p class="text-muted mb-0 small">Control de deudas y validación de reportes de pago.</p>
+        </div>
+        
+        <div class="col-lg-7 text-lg-end">
+            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-lg-end">
+                <a href="{% url 'registrar_gasto_colectivo' %}" class="btn btn-dark rounded-pill shadow-sm fw-bold px-3 px-md-4 py-2 flex-fill flex-sm-grow-0">
+                    <i class="fas fa-users-cog me-1"></i> GASTO COMÚN
+                </a>
+                <a href="{% url 'cargar_deuda_manual_general' %}" class="btn btn-outline-primary bg-white rounded-pill shadow-sm fw-bold px-3 px-md-4 py-2 flex-fill flex-sm-grow-0">
+                    <i class="fas fa-plus me-1"></i> CARGO MANUAL
+                </a>
+                <a href="{% url 'importar_cargos_masivos' %}" class="btn btn-success rounded-pill shadow-sm fw-bold px-3 px-md-4 py-2 flex-fill flex-sm-grow-0">
+                    <i class="fas fa-file-excel me-1"></i> CARGAR EXCEL
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4 g-3">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-primary text-white h-100 card-metric" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);">
+                <div class="card-body p-4 position-relative overflow-hidden">
+                    <h6 class="text-uppercase small fw-bold opacity-75 mb-1" style="letter-spacing: 0.5px;">Total Global por Cobrar</h6>
+                    <h2 class="fw-bold mb-0 display-6">${{ total_global|floatformat:2 }}</h2>
+                    <i class="fas fa-money-bill-wave position-absolute end-0 bottom-0 m-3 opacity-25 fa-4x" style="transform: rotate(-15deg) translateY(10px);"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-white h-100 card-metric border-left-warning">
+                <div class="card-body p-4 position-relative overflow-hidden">
+                    <h6 class="text-uppercase small fw-bold text-muted mb-1" style="letter-spacing: 0.5px;">Socios con Deuda</h6>
+                    <h2 class="fw-bold text-dark mb-0 display-6">{{ socios.count }}</h2>
+                    <i class="fas fa-users position-absolute end-0 bottom-0 m-3 opacity-10 fa-4x text-warning" style="transform: translateX(10px);"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 card-metric {% if pagos_por_aprobar_total > 0 %}bg-warning text-dark border-left-danger{% else %}bg-white border-left-success{% endif %}">
+                <div class="card-body p-4 position-relative overflow-hidden">
+                    <h6 class="text-uppercase small fw-bold {% if pagos_por_aprobar_total == 0 %}text-muted{% endif %} mb-1" style="letter-spacing: 0.5px;">
+                        Pagos por Validar
+                    </h6>
+                    <div class="d-flex align-items-center">
+                        <h2 class="fw-bold mb-0 display-6 me-2">{{ pagos_por_aprobar_total|default:"0" }}</h2>
+                        {% if pagos_por_aprobar_total > 0 %}
+                            <div class="pulse-danger ms-2" style="width: 12px; height: 12px; background: #e74a3b; border-radius: 50%; box-shadow: 0 0 0 rgba(231, 74, 59, 0.4); animation: pulse-danger-anim 2s infinite;"></div>
+                        {% else %}
+                            <i class="fas fa-check-circle text-success fs-4"></i>
+                        {% endif %}
+                    </div>
+                    <i class="fas fa-bell position-absolute end-0 bottom-0 m-3 opacity-10 fa-4x {% if pagos_por_aprobar_total > 0 %}text-danger{% endif %}" style="transform: rotate(15deg);"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm table-custom-container">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h6 class="m-0 fw-bold text-primary text-uppercase small"><i class="fas fa-list-ol me-2"></i>Listado de Cuentas por Cobrar</h6>
+        </div>
+        
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 custom-table table-mobile-scroll">
+                    <thead class="bg-light">
+                        <tr class="text-muted" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                            <th class="ps-4 border-0">SOCIO / NOMBRE</th>
+                            <th class="text-center border-0">ESTATUS REPORTES</th>
+                            <th class="text-center border-0">DEUDAS ACTIVAS</th>
+                            <th class="text-end border-0">MONTO PENDIENTE</th>
+                            <th class="text-center pe-4 border-0">ACCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for socio in socios %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="unidad-pill">{{ socio.unidad }}</div>
+                                    <div>
+                                        <div class="fw-bold text-dark" style="font-size: 0.9rem;">{{ socio.nombre }}</div>
+                                        <div class="text-muted small">CI: {{ socio.cedula }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <td class="text-center">
+                                {% if socio.pagos_nuevos > 0 %}
+                                    <span class="status-pill pill-warning shadow-sm">
+                                        <i class="fas fa-exclamation-circle me-1"></i> {{ socio.pagos_nuevos }} POR VALIDAR
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted" style="font-size: 0.75rem;"><i class="fas fa-clock me-1 opacity-50"></i>Sin reportes</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="text-center">
+                                <span class="badge bg-light text-secondary border rounded-pill px-3 py-1 fw-bold" style="font-size: 0.75rem;">
+                                    {{ socio.cantidad_facturas }} recibos
+                                </span>
+                            </td>
+                            
+                            <td class="text-end">
+                                <span class="fw-bold {% if socio.pagos_nuevos > 0 %}text-primary{% else %}text-danger{% endif %}" style="font-size: 1.1rem;">
+                                    ${{ socio.total_pendiente|floatformat:2 }}
+                                </span>
+                            </td>
+                            
+                            <td class="text-center pe-4">
+                                <div class="d-flex gap-2 justify-content-center align-items-center">
+                                    <a href="https://wa.me/{{ socio.telefono }}" target="_blank" class="btn btn-sm btn-light text-success border rounded-circle shadow-sm action-icon" title="Notificar por WhatsApp">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                    
+                                    <a href="{% url 'gestionar_socio_cobranza' socio.id %}" class="btn btn-sm {% if socio.pagos_nuevos > 0 %}btn-warning text-dark{% else %}btn-primary{% endif %} rounded-pill px-3 fw-bold shadow-sm action-btn">
+                                        <i class="fas fa-search-dollar me-1"></i> Gestionar
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="mb-3"><i class="fas fa-check-double fa-4x text-success opacity-25"></i></div>
+                                <h5 class="text-muted fw-bold">¡Cero Cuentas Pendientes!</h5>
+                                <p class="text-muted small mb-0">Todos los socios de la línea están al día con sus pagos.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes pulse-danger-anim {
+        0% { box-shadow: 0 0 0 0 rgba(231, 74, 59, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(231, 74, 59, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(231, 74, 59, 0); }
+    }
+</style>
+{% endblock %}

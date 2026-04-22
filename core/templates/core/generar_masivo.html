@@ -1,0 +1,92 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 text-dark fw-bold mb-0">
+            <i class="fas fa-bolt text-warning me-2"></i>Generar Cobros Masivos
+        </h2>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="m-0 fw-bold"><i class="fas fa-file-invoice-dollar me-2"></i>Nuevo Cargo General</h5>
+                </div>
+                
+                <div class="card-body p-4">
+                    <div class="alert alert-info border-0 d-flex align-items-center mb-4">
+                        <i class="fas fa-info-circle fa-2x me-3"></i>
+                        <div>
+                            <strong>Modo Condominio:</strong>
+                            <p class="mb-0 small">Si el socio ya tiene un recibo pendiente de este mes, este cobro se agregará como una línea nueva. Si no, se creará un recibo nuevo.</p>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted text-uppercase small">Concepto a Cobrar</label>
+                            <select name="concepto_id" id="selectConcepto" class="form-select form-select-lg" required>
+                                <option value="" selected disabled>-- Selecciona qué cobrar --</option>
+                                {% for c in conceptos %}
+                                    <option value="{{ c.id }}" data-precio="{{ c.monto_sugerido }}">
+                                        {{ c.nombre }}
+                                    </option>
+                                {% empty %}
+                                    <option disabled>No hay conceptos creados</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text mt-2">
+                                <a href="{% url 'gestionar_conceptos' %}" class="text-decoration-none">
+                                    <i class="fas fa-plus-circle"></i> Crear nuevo concepto
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted text-uppercase small">Monto a aplicar por Socio ($)</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-end-0">$</span>
+                                <input type="number" step="0.01" name="monto_usd" id="inputMonto" class="form-control border-start-0" placeholder="0.00" required>
+                            </div>
+                            <small class="text-muted">Puedes modificar este monto si deseas cobrar algo distinto al sugerido.</small>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold" onclick="return confirm('¿Estás seguro de generar este cargo a TODOS los socios activos?');">
+                                <i class="fas fa-paper-plane me-2"></i> EJECUTAR COBRO MASIVO
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const select = document.getElementById('selectConcepto');
+        const input = document.getElementById('inputMonto');
+
+        select.addEventListener('change', function() {
+            // Obtenemos la opción seleccionada
+            const selectedOption = this.options[this.selectedIndex];
+            
+            // Leemos el atributo data-precio
+            const precioSugerido = selectedOption.getAttribute('data-precio');
+            
+            // Si hay precio, lo ponemos en el input. Reemplazamos la coma por punto si fuese necesario
+            if (precioSugerido) {
+                input.value = parseFloat(precioSugerido.replace(',', '.')).toFixed(2);
+            }
+        });
+    });
+</script>
+{% endblock %}

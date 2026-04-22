@@ -1,0 +1,131 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="fw-bold text-dark mb-0">
+                    <i class="fas fa-file-import text-primary me-2"></i>Importación Masiva
+                </h3>
+                <a href="{% url 'modulo_cobranza' %}" class="btn btn-outline-secondary rounded-pill px-3">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; border-left: 5px solid #1cc88a !important;">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold text-success text-uppercase small mb-3">
+                        <i class="fas fa-info-circle me-1"></i> Formato del Archivo Excel
+                    </h6>
+                    <p class="small text-muted mb-3">
+                        Para una carga exitosa, el archivo debe ser <strong>.xlsx</strong> y contener las siguientes columnas en la primera hoja (comenzando desde la fila 2):
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered text-center small mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Columna A</th>
+                                    <th>Columna B</th>
+                                    <th>Columna C</th>
+                                    <th>Columna D</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Nro. Unidad</td>
+                                    <td>Fecha</td>
+                                    <td>Concepto / Descripción</td>
+                                    <td>Monto ($)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="x-small text-danger mt-2 mb-0">
+                        * Nota: Asegúrese de que las unidades existan en el sistema antes de importar.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+                <div class="card-body p-4 p-md-5">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark">Mes de Aplicación</label>
+                                <select name="mes" class="form-select form-select-lg border-2" required>
+                                    <option value="" disabled selected>Seleccione el mes...</option>
+                                    <option value="1">Enero</option>
+                                    <option value="2">Febrero</option>
+                                    <option value="3">Marzo</option>
+                                    <option value="4">Abril</option>
+                                    <option value="5">Mayo</option>
+                                    <option value="6">Junio</option>
+                                    <option value="7">Julio</option>
+                                    <option value="8">Agosto</option>
+                                    <option value="9">Septiembre</option>
+                                    <option value="10">Octubre</option>
+                                    <option value="11">Noviembre</option>
+                                    <option value="12">Diciembre</option>
+                                </select>
+                                <small class="text-muted">Los cargos se agruparán en este periodo.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark">Año</label>
+                                <select name="anio" class="form-select form-select-lg border-2" required>
+                                    <option value="2025">2025</option>
+                                    <option value="2026" selected>2026</option>
+                                    <option value="2027">2027</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <hr class="opacity-10 my-4">
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark">Seleccionar Archivo Excel</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-2 border-end-0"><i class="fas fa-file-excel text-success"></i></span>
+                                <input type="file" name="archivo_excel" class="form-control form-control-lg border-2 border-start-0" accept=".xlsx, .xls" required>
+                            </div>
+                            <div class="form-text mt-2">Sólo se permiten archivos de Microsoft Excel (.xlsx)</div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm rounded-pill py-3">
+                                <i class="fas fa-upload me-2"></i> PROCESAR IMPORTACIÓN
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="alert alert-info border-0 mt-4 small shadow-sm" style="border-radius: 12px;">
+                <div class="d-flex">
+                    <i class="fas fa-shield-alt fa-2x me-3"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Validación de Seguridad Contable</h6>
+                        <p class="mb-0">El sistema verificará automáticamente si el periodo seleccionado está cerrado. Si el mes ya fue auditado, la importación será rechazada para proteger la integridad de los datos.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-select-lg, .form-control-lg {
+        font-size: 1rem;
+    }
+    .input-group-text {
+        color: #6c757d;
+    }
+    .x-small {
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}

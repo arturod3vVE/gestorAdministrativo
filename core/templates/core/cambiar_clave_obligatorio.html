@@ -1,0 +1,24 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow border-0 mt-5">
+            <div class="card-body p-5 text-center">
+                <i class="fas fa-shield-alt fa-3x text-warning mb-3"></i>
+                <h4 class="fw-bold">Seguridad de tu Cuenta</h4>
+                <p class="text-muted">Por ser tu primer ingreso, debes crear una nueva contraseña personal.</p>
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="text-start">
+                        {{ form.as_p }}
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                        GUARDAR Y CONTINUAR
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

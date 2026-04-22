@@ -1,0 +1,93 @@
+{% extends 'core/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid p-4">
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-file-invoice-dollar text-primary me-2"></i>Aviso de Cobro - {{ mes_nombre }} {{ anio }}
+        </h1>
+        <a href="javascript:history.back()" class="btn btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left me-1"></i> Volver
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-white border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary text-uppercase">
+                Estado de Cuenta - {{ mes_nombre }} {{ anio }}
+            </h6>
+            <span class="badge bg-success px-3 py-2">Tasa BCV: {{ tasa }} Bs/USD</span>
+        </div>
+        
+        <div class="card-body p-5">
+            <div class="row mb-4">
+                <div class="col-sm-6">
+                    <h5 class="fw-bold text-dark">Línea de Conductores Unidos</h5>
+                    <p class="mb-1">RIF: J-12345678-9</p>
+                    <p class="text-muted small">Dirección Fiscal de la Línea</p>
+                </div>
+                <div class="col-sm-6 text-end">
+                    <h5 class="fw-bold text-primary">Nombre: {{ request.user.socio.nombre }}</h5>
+                    <p class="mb-1 fw-bold">Socio #{{ request.user.socio.unidad }}</p>
+                    <p class="text-muted small">Cédula: {{ request.user.socio.cedula }}</p>
+                </div>
+            </div>
+
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th>Concepto</th>
+                            <th class="text-center">Fecha</th>
+                            <th class="text-end">Monto (USD)</th>
+                            <th class="text-end">Monto (Bs)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cargo in cargos %}
+                        <tr>
+                            <td>{{ cargo.concepto.nombre }}</td>
+                            <td class="text-center">{{ cargo.fecha_generada|date:"d/m/Y" }}</td>
+                            <td class="text-end fw-bold">{{ cargo.monto_dolares|floatformat:2 }} $</td>
+                            <td class="text-end text-muted">{{ cargo.monto_bolivares|floatformat:2 }} Bs</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-3">No hay cargos registrados para este mes.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row justify-content-end">
+                <div class="col-lg-4 col-md-6">
+                    <table class="table table-sm border-0">
+                        <tr>
+                            <td class="fw-bold text-end pe-3">Subtotal USD:</td>
+                            <td class="text-end fw-bold">{{ total_usd|floatformat:2 }} $</td>
+                        </tr>
+                        <tr class="bg-primary text-white fs-5">
+                            <td class="fw-bold text-end pe-3 py-2">TOTAL A PAGAR:</td>
+                            <td class="text-end fw-bold py-2">{{ total_bs|floatformat:2 }} Bs</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="text-center">
+                <p class="text-muted small fst-italic">
+                    Este recibo es un comprobante digital generado el {% now "d/m/Y H:i" %}.
+                </p>
+                <button onclick="window.print()" class="btn btn-outline-dark fw-bold">
+                    <i class="fas fa-print me-2"></i> Imprimir Recibo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

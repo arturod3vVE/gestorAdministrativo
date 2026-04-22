@@ -1,0 +1,114 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-md-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Control de Periodos</h3>
+            <p class="text-muted small">Historial contable y cierre de facturación</p>
+        </div>
+        
+        <form method="get" class="d-flex gap-2">
+            <select name="anio" class="form-select rounded-pill border-2 shadow-sm px-4" onchange="this.form.submit()">
+                {% for a in anios_disponibles %}
+                    <option value="{{ a }}" {% if a == anio_seleccionado %}selected{% endif %}>Año {{ a }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 mb-3 mb-md-0" style="border-radius: 15px; background: linear-gradient(135deg, #1a2a6c 0%, #2a48ad 100%); color: white;">
+                <small class="text-uppercase fw-bold opacity-75 small">Facturación Total {{ anio_seleccionado }}</small>
+                <h3 class="fw-bold mb-0">${{ resumen.facturado|floatformat:2 }}</h3>
+                <div class="mt-2 small opacity-75">Meta bruta del año</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 mb-3 mb-md-0" style="border-radius: 15px; background-color: white;">
+                <small class="text-uppercase fw-bold text-muted small">Recaudado (Efectivo)</small>
+                <h3 class="fw-bold text-success mb-0">${{ resumen.recaudado|floatformat:2 }}</h3>
+                <div class="progress mt-2" style="height: 6px;">
+                    <div class="progress-bar bg-success" style="width: {{ resumen.eficiencia }}%"></div>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                    <small class="text-muted">{{ resumen.eficiencia }}% Cobrado</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3" style="border-radius: 15px; background-color: white;">
+                <small class="text-uppercase fw-bold text-muted small">Cuentas por Cobrar</small>
+                <h3 class="fw-bold text-danger mb-0">${{ resumen.pendiente|floatformat:2 }}</h3>
+                <div class="mt-2 small text-muted">Monto total en mora</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 20px;">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold text-uppercase text-primary">Estado de Meses {{ anio_seleccionado }}</h6>
+            <button onclick="window.print()" class="btn btn-sm btn-light border rounded-pill">
+                <i class="fas fa-print me-1"></i> Imprimir Reporte
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light small text-muted text-uppercase">
+                        <tr>
+                            <th class="ps-4">Mes</th>
+                            <th class="text-center">Avisos</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-end pe-4">Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mes in meses %}
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-bold text-dark">{{ mes.nombre }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill bg-light text-dark border px-3">
+                                    {{ mes.avisos }} registros
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                {% if mes.cerrado %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3">
+                                        <i class="fas fa-lock me-1"></i> CERRADO
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">
+                                        <i class="fas fa-lock-open me-1"></i> ABIERTO
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                {% if not mes.cerrado %}
+                                    <form action="{% url 'cerrar_mes_contable' %}" method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="mes" value="{{ mes.numero }}">
+                                        <input type="hidden" name="anio" value="{{ anio_seleccionado }}">
+                                        <button type="submit" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold"
+                                                onclick="return confirm('¿Bloquear facturación de {{ mes.nombre }}?')">
+                                            Cerrar
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <button class="btn btn-sm btn-light border rounded-pill px-3 disabled">
+                                        Bloqueado
+                                    </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

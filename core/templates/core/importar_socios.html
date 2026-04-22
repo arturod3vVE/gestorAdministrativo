@@ -1,0 +1,128 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'transparencia' %}">Socios</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Importación Masiva</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm border-0" style="border-radius: 15px;">
+            <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center" style="border-radius: 15px 15px 0 0;">
+                <h5 class="mb-0"><i class="fas fa-users-cog me-2"></i>Importar Socios desde Excel</h5>
+                <span class="badge bg-success">Formato .XLSX</span>
+            </div>
+            
+            <div class="card-body p-4">
+                <div class="bg-light p-3 rounded-3 mb-4 border-start border-4 border-primary shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div class="mb-2 mb-md-0">
+                            <h6 class="fw-bold mb-1">¿No tienes el formato?</h6>
+                            <p class="text-muted small mb-0">Descarga la plantilla oficial para asegurar que los datos carguen correctamente.</p>
+                        </div>
+                        <a href="{% url 'descargar_plantilla_socios' %}" class="btn btn-primary shadow-sm">
+                            <i class="fas fa-download me-2"></i>Bajar Plantilla
+                        </a>
+                    </div>
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" enctype="multipart/form-data" class="mt-2" id="importForm">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="archivo_excel" class="form-label fw-bold text-dark">
+                            <i class="fas fa-file-upload me-1 text-primary"></i> Selecciona tu archivo Excel preparado:
+                        </label>
+                        <input type="file" name="archivo_excel" id="archivo_excel" 
+                               class="form-control form-control-lg border-2" 
+                               accept=".xlsx" required>
+                        <div class="form-text mt-2">
+                            <i class="fas fa-info-circle me-1"></i> 
+                            El sistema creará automáticamente una cuenta de acceso para cada socio (Usuario = Unidad, Clave = Cédula).
+                        </div>
+                    </div>
+
+                    <hr class="my-4 text-muted opacity-25">
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg fw-bold py-3 shadow" id="btnSubmit">
+                            <span id="btnText"><i class="fas fa-check-circle me-2"></i>PROCESAR E IMPORTAR AHORA</span>
+                            <span id="btnSpinner" class="d-none">
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                PROCESANDO DATOS... ESPERE POR FAVOR
+                            </span>
+                        </button>
+                        
+                        <a href="{% url 'transparencia' %}" class="btn btn-link text-decoration-none text-muted" id="btnCancel">
+                            <i class="fas fa-arrow-left me-1"></i> Volver a la lista de socios
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="mt-4 p-3 bg-white rounded shadow-sm border">
+            <h6 class="fw-bold text-uppercase small text-muted mb-3"><i class="fas fa-list-ol me-2"></i>Orden de las columnas en el Excel:</h6>
+            <div class="row text-center g-2">
+                <div class="col"><div class="p-2 border rounded bg-light small">1. Nombre</div></div>
+                <div class="col"><div class="p-2 border rounded bg-light small">2. Nro. Socio</div></div>
+                <div class="col"><div class="p-2 border rounded bg-light small">3. Nac (V/E)</div></div>
+                <div class="col"><div class="p-2 border rounded bg-light small">4. Cédula</div></div>
+                <div class="col"><div class="p-2 border rounded bg-light small">5. Teléfono</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('importForm').onsubmit = function() {
+        const btnSubmit = document.getElementById('btnSubmit');
+        const btnCancel = document.getElementById('btnCancel');
+        const btnText = document.getElementById('btnText');
+        const btnSpinner = document.getElementById('btnSpinner');
+
+        // 1. Deshabilitar botones inmediatamente
+        btnSubmit.disabled = true;
+        btnCancel.classList.add('disabled');
+        
+        // 2. Mostrar Spinner y cambiar estilo
+        btnText.classList.add('d-none');
+        btnSpinner.classList.remove('d-none');
+        btnSubmit.classList.replace('btn-success', 'btn-secondary');
+
+        return true; // Permitir que el formulario se envíe
+    };
+</script>
+
+<style>
+    .form-control-lg:focus {
+        border-color: #198754;
+        box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+    }
+    .breadcrumb-item a {
+        text-decoration: none;
+        color: #6c757d;
+    }
+    .breadcrumb-item.active {
+        font-weight: bold;
+        color: #212529;
+    }
+    .btn-lg {
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0" style="color: #000;"><i class="fas fa-history me-2"></i>Mi Historial</h4>
+        
+        <button class="btn btn-sm btn-outline-primary d-md-none rounded-pill" type="button" data-bs-toggle="collapse" data-bs-target="#filtroPagos">
+            <i class="fas fa-filter"></i> Filtrar
+        </button>
+    </div>
+
+    <div class="collapse d-md-block mb-4" id="filtroPagos">
+        <form method="get" class="card card-body border-0 shadow-sm rounded-4">
+            <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-4">
+                    <label class="small fw-bold text-muted mb-1">Mes</label>
+                    <select name="mes" class="form-select form-select-sm border-0 bg-light">
+                        <option value="">Todos los meses</option>
+                        {% for num, nombre in meses_nombres %}
+                            <option value="{{ num }}" {% if mes_actual == num|stringformat:"i" %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label class="small fw-bold text-muted mb-1">Año</label>
+                    <select name="anio" class="form-select form-select-sm border-0 bg-light">
+                        <option value="">Todos los años</option>
+                        {% for a in años %}
+                            <option value="{{ a }}" {% if anio_actual == a|stringformat:"i" %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-4 d-flex gap-2 mt-2 mt-md-0">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill fw-bold rounded-pill shadow-sm">
+                        Aplicar
+                    </button>
+                    {% if mes_actual or anio_actual %}
+                        <a href="{% url 'mis_pagos' %}" class="btn btn-light btn-sm flex-fill fw-bold rounded-pill border shadow-sm">
+                            Limpiar
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="row">
+        {% for pago in pagos %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card mb-3 border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-muted small mb-0">{{ pago.fecha_pago|date:"d M, Y" }}</h6>
+                            <span class="fw-bold d-block" style="color: #000;">{{ pago.aviso.periodo_formateado }}</span>
+                        </div>
+                        
+                        {% if pago.estado == 'APROBADO' %}
+                            <span class="badge bg-success-subtle text-success border border-success rounded-pill px-2">Aprobado</span>
+                        {% elif pago.estado == 'RECHAZADO' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger rounded-pill px-2">Rechazado</span>
+                        {% else %}
+                            <span class="badge bg-warning-subtle text-dark border border-warning rounded-pill px-2">Revisión</span>
+                        {% endif %}
+                    </div>
+
+                    <hr class="my-2 opacity-25">
+
+                    <div class="row g-2 text-center my-3">
+                        <div class="col-4 border-end">
+                            <small class="text-muted d-block" style="font-size: 0.6rem;">BS.</small>
+                            <span class="fw-bold small">{{ pago.monto_bolivares|floatformat:2|default:"---" }}</span>
+                        </div>
+                        <div class="col-4 border-end">
+                            <small class="text-muted d-block" style="font-size: 0.6rem;">TASA</small>
+                            <span class="fw-bold small">{{ pago.tasa_bcv_usada|floatformat:2 }}</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block" style="font-size: 0.6rem;">USD</small>
+                            <span class="fw-bold text-success small">${{ pago.monto_dolares|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2 d-flex justify-content-between align-items-center">
+                        <small class="text-muted font-monospace">Ref: {{ pago.referencia }}</small>
+                        {% if pago.comprobante %}
+                            <a href="{{ pago.comprobante.url }}" target="_blank" class="btn btn-sm btn-link p-0 text-primary fw-bold text-decoration-none small">
+                                <i class="fas fa-camera me-1"></i> Capture
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3 opacity-25"></i>
+            <p class="text-muted">No se encontraron pagos con los filtros seleccionados.</p>
+            <a href="{% url 'mis_pagos' %}" class="btn btn-link">Ver todo el historial</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .bg-success-subtle { background-color: #d1e7dd !important; }
+    .bg-danger-subtle { background-color: #f8d7da !important; }
+    .bg-warning-subtle { background-color: #fff3cd !important; }
+</style>
+{% endblock %}

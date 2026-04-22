@@ -1,0 +1,175 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-tags me-2 text-primary"></i>Configuración de Conceptos</h1>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header py-3 bg-white border-bottom">
+                    <h6 class="m-0 fw-bold text-primary">Registrar Nuevo Cobro</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="formConcepto">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase text-muted">Nombre del Concepto</label>
+                            {{ form.nombre }}
+                            <div class="form-text">Ej: Mensualidad, Finanzas, Rifa.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-success">Monto Base / Propietario ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.monto_sugerido }}
+                            </div>
+                            <div class="form-text">Monto estándar para socios que manejan su unidad.</div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="form-check form-switch p-3 bg-light rounded border mb-3">
+                            <input class="form-check-input ms-0 me-3" type="checkbox" id="switchExtra" style="cursor: pointer;">
+                            <label class="form-check-label fw-bold text-dark" for="switchExtra" style="cursor: pointer;">
+                                ¿Cobro extra para Avances?
+                            </label>
+                            <div class="small text-muted mt-1">Active esto si la unidad con chofer paga más.</div>
+                        </div>
+
+                        <div id="seccionMontoExtra" style="display: none;" class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-danger">Monto para Avances / Chofer ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-danger text-white border-danger">$</span>
+                                {{ form.monto_chofer }}
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary fw-bold py-2 shadow-sm">
+                                <i class="fas fa-save me-2"></i> Guardar Concepto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header py-3 bg-white border-bottom">
+                    <h6 class="m-0 fw-bold text-dark">Conceptos Activos en el Sistema</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-muted small text-uppercase">
+                                <tr>
+                                    <th class="ps-4">Descripción del Concepto</th>
+                                    <th class="text-center">Tarifa Base</th>
+                                    <th class="text-center">Tarifa Avance</th>
+                                    <th class="pe-4 text-end">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in conceptos %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-bold text-dark">{{ c.nombre }}</div>
+                                        <small class="text-muted">ID: #{{ c.id }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">
+                                            ${{ c.monto_sugerido|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if c.monto_chofer > c.monto_sugerido %}
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3">
+                                                ${{ c.monto_chofer|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted small">Igual al base</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="pe-4 text-end">
+                                        <a href="{% url 'eliminar_concepto' c.id %}" 
+                                           class="btn btn-sm btn-outline-danger border-0" 
+                                           onclick="return confirm('¿Está seguro de eliminar este concepto? Esto no afectará deudas ya generadas.');"
+                                           title="Eliminar Concepto">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted">
+                                        <i class="fas fa-info-circle fa-2x mb-3 opacity-25"></i>
+                                        <p>No se han definido conceptos de cobro todavía.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const switchExtra = document.getElementById('switchExtra');
+        const seccionExtra = document.getElementById('seccionMontoExtra');
+        
+        // Obtenemos los inputs por su atributo name (Django los genera así)
+        const inputSugerido = document.querySelector('input[name="monto_sugerido"]');
+        const inputChofer = document.querySelector('input[name="monto_chofer"]');
+
+        function actualizarVisibilidad() {
+            if (switchExtra.checked) {
+                // Si el switch está encendido, mostramos la sección y permitimos edición
+                seccionExtra.style.display = 'block';
+            } else {
+                // Si el switch está apagado, ocultamos y sincronizamos valores
+                seccionExtra.style.display = 'none';
+                inputChofer.value = inputSugerido.value;
+            }
+        }
+
+        // Evento al cambiar el Switch
+        switchExtra.addEventListener('change', actualizarVisibilidad);
+
+        // Sincronización automática: si el switch está apagado, el precio chofer 
+        // siempre sigue al precio base mientras escribes.
+        inputSugerido.addEventListener('input', function() {
+            if (!switchExtra.checked) {
+                inputChofer.value = this.value;
+            }
+        });
+
+        // Verificación inicial por si la página carga con errores de validación
+        if (inputChofer.value !== inputSugerido.value && inputChofer.value !== "") {
+            switchExtra.checked = true;
+        }
+        actualizarVisibilidad();
+    });
+</script>
+
+<style>
+    /* Estilo para que el switch se vea más grande y moderno */
+    .form-switch .form-check-input {
+        width: 3em;
+        height: 1.5em;
+    }
+    .input-group-text {
+        font-weight: bold;
+    }
+</style>
+
+{% endblock %}

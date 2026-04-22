@@ -1,0 +1,150 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--single {
+        border: 2px solid #e3e6f0 !important;
+        border-radius: 50px !important;
+        height: 45px !important;
+        padding-top: 8px !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 42px !important;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-file-invoice-dollar fa-3x text-primary mb-3"></i>
+                        <h4 class="fw-bold text-dark">Nuevo Cargo Directo</h4>
+                        <p class="text-muted small">Cargue deudas individuales al sistema</p>
+                    </div>
+
+                    <form method="POST" id="cargoForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Buscar Socio / Unidad</label>
+                            <select name="socio_id" id="selectSocio" class="form-select" required>
+                                <option value="" selected disabled>Escriba nombre o unidad...</option>
+                                {% for s in socios %}
+                                    <option value="{{ s.id }}">Socio {{ s.unidad }} - {{ s.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Fecha del Cargo</label>
+                            <input type="date" name="fecha_cobro" class="form-control rounded-pill border-2 shadow-none" 
+                                   value="{{ fecha_actual|date:'Y-m-d' }}">
+                            <small class="text-muted">Deje en blanco para usar la fecha de hoy.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Concepto del Cobro</label>
+                            <input type="text" name="descripcion" class="form-control rounded-pill border-2 shadow-none" 
+                                   placeholder="Ej: Multa, Listín extra, Reparación..." required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Monto ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-2 border-end-0 rounded-start-pill text-muted">$</span>
+                                <input type="text" id="monto_mask" class="form-control border-2 border-start-0 rounded-end-pill shadow-none fw-bold text-end pe-4" 
+                                       placeholder="0,00" required>
+                                
+                                <input type="hidden" name="monto" id="monto_real">
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold py-3 shadow">
+                                <i class="fas fa-save me-2"></i> GENERAR CARGO
+                            </button>
+                            <a href="{% url 'modulo_cobranza' %}" class="btn btn-link text-muted fw-bold">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Inicializar Select2
+        $('#selectSocio').select2({
+            placeholder: "Escriba unidad o nombre...",
+            allowClear: true,
+            width: '100%'
+        });
+
+        // --- LÓGICA DE LA MÁSCARA BANCARIA INTELIGENTE ---
+        const inputMask = document.getElementById('monto_mask');
+        const inputReal = document.getElementById('monto_real');
+
+        // Función central para procesar y formatear
+        function formatMoneyInput(valueStr) {
+            // Eliminar todo lo que no sea número
+            let value = valueStr.replace(/\D/g, "");
+            if (value === "") value = "0";
+
+            // Convertir a decimal matemático (ej: "500" -> 5.00)
+            let floatValue = parseFloat(value) / 100;
+
+            // Formatear visualmente con separadores de miles y 2 decimales
+            inputMask.value = floatValue.toLocaleString('es-ES', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+            // Guardar el valor real (ej: "5.00") en el campo oculto para el backend (Decimal)
+            inputReal.value = floatValue.toFixed(2);
+        }
+
+        // 1. Escuchar cuando el usuario teclea
+        inputMask.addEventListener('input', function(e) {
+            formatMoneyInput(e.target.value);
+        });
+
+        // 2. Escuchar cuando el usuario pega un texto (Paste Guard)
+        inputMask.addEventListener('paste', function(e) {
+            e.preventDefault();
+            
+            // Capturar lo pegado
+            let pastedData = (e.clipboardData || window.clipboardData).getData('text');
+            
+            // Limpiar: Cambiar comas por puntos y quitar cualquier letra/símbolo extra
+            let cleanPasted = pastedData.replace(',', '.').replace(/[^0-9.]/g, '');
+            let parsedFloat = parseFloat(cleanPasted);
+
+            if (!isNaN(parsedFloat)) {
+                // Truco: lo llevamos a string con 2 decimales y le quitamos el punto (ej "15.00" -> "1500")
+                // para que formatMoneyInput lo procese correctamente como tipeo manual.
+                let stringParaMascara = parsedFloat.toFixed(2).replace('.', '');
+                formatMoneyInput(stringParaMascara);
+            }
+        });
+
+        // 3. Prevenir envío de valores en cero
+        document.getElementById('cargoForm').addEventListener('submit', function(e) {
+            if (!inputReal.value || inputReal.value === "0.00") {
+                e.preventDefault(); // Detenemos el formulario
+                inputMask.classList.add('is-invalid'); // Mostramos error visual
+                
+                // Quitamos la clase después de 2 segundos para no dejarla pegada
+                setTimeout(() => inputMask.classList.remove('is-invalid'), 2000);
+            }
+        });
+    });
+</script>
+{% endblock %}

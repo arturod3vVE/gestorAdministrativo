@@ -1,0 +1,304 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden;">
+            <div class="card-header bg-primary text-white text-center py-3 border-0">
+                <h5 class="m-0 fw-bold">Reportar Pago - Unidad #{{ aviso.socio.unidad }}</h5>
+            </div>
+            <div class="card-body bg-white text-center border-bottom">
+                <div class="row">
+                    <div class="col-6 border-end">
+                        <small class="text-muted fw-bold text-uppercase" style="font-size: 0.75rem;">Deuda Pendiente</small>
+                        <h3 class="fw-bold text-dark mb-0">${{ saldo_usd|floatformat:2 }}</h3>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted fw-bold text-uppercase" style="font-size: 0.75rem;">Monto Máximo Bs.</small>
+                        <h3 class="text-primary fw-bold mb-0">Bs. {{ saldo_bs|floatformat:2 }}</h3>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span class="badge bg-light text-dark border small">Tasa del día: {{ tasa|floatformat:2 }} Bs.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-5" style="border-radius: 15px;">
+            <div class="card-body p-4">
+                
+                {% if messages %}
+                <div class="alert alert-danger shadow-sm mb-4 border-start border-4 border-danger">
+                    <h6 class="fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Atención:</h6>
+                    <ul class="mb-0 small">
+                        {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data" id="pagoForm">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark mb-3"><i class="fas fa-university me-2 text-primary"></i>1. Selecciona la Cuenta de Destino:</label>
+                        <div class="row g-2">
+                            {% for metodo in metodos_pago %}
+                            <div class="col-6 col-md-4">
+                                <input type="radio" class="btn-check" name="metodo" 
+                                       id="metodo_{{ metodo.id }}" value="{{ metodo.id }}" 
+                                       data-datos="{{ metodo.datos_cuenta }}" 
+                                       data-moneda="{{ metodo.moneda }}" required>
+                                
+                                <label class="btn btn-outline-primary w-100 h-100 p-3 d-flex flex-column align-items-center justify-content-center shadow-sm card-radio" 
+                                       for="metodo_{{ metodo.id }}">
+                                    {% if 'MOVIL' in metodo.tipo %}<i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                                    {% elif 'ZELLE' in metodo.tipo %}<i class="fas fa-dollar-sign fa-2x mb-2"></i>
+                                    {% else %}<i class="fas fa-university fa-2x mb-2"></i>{% endif %}
+                                    <span class="fw-bold small text-center">{{ metodo.nombre }}</span>
+                                    {% if metodo.moneda == 'USD' %}
+                                        <span class="badge bg-success mt-1" style="font-size: 0.65rem;">Dólares ($)</span>
+                                    {% else %}
+                                        <span class="badge bg-primary mt-1" style="font-size: 0.65rem;">Bolívares (Bs)</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div id="cajaDatos" class="alert alert-info d-none border-0 shadow-sm mb-4" style="background-color: #f0f7ff;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-primary fw-bold d-block mb-1 text-uppercase" style="font-size: 0.7rem;">Datos para transferir:</small>
+                                <p class="mb-0 text-dark fw-bold" id="textoCuentas" style="white-space: pre-wrap; font-family: monospace; font-size: 0.9rem;"></p>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" onclick="copiarAlPortapapeles()">
+                                <i class="fas fa-copy me-1"></i>Copiar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        
+                        <div class="col-md-6">
+                            <label class="fw-bold text-dark mb-2">2. Monto a pagar</label>
+                            
+                            <div id="mensajeSeleccion" class="alert alert-secondary py-2 mb-0 text-center border-0" style="border-radius: 8px;">
+                                <small class="text-muted"><i class="fas fa-hand-pointer me-1"></i> Selecciona un banco arriba</small>
+                            </div>
+
+                            <div id="containerBs" style="display: none;">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light fw-bold text-primary border-2">Bs.</span>
+                                    <input type="number" step="0.01" name="monto_bs" id="inputMontoBs" 
+                                        class="form-control form-control-lg fw-bold text-dark border-2"
+                                        placeholder="0.00">
+                                </div>
+                                <div class="form-text mt-1 text-muted" id="conversionUsdText">
+                                    Equivalente: <strong class="text-success">$0.00</strong>
+                                </div>
+                            </div>
+
+                            <div id="containerUsd" style="display: none;">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light fw-bold text-success border-2">$</span>
+                                    <input type="number" step="0.01" name="monto_usd" id="inputMontoUsd" 
+                                        class="form-control form-control-lg fw-bold text-dark border-2"
+                                        placeholder="0.00">
+                                </div>
+                                <div class="form-text mt-1 text-muted" id="conversionBsText">
+                                    Equivalente: <strong class="text-primary">Bs. 0.00</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="fw-bold text-dark mb-2">3. Número de Referencia</label>
+                            <input type="number" name="referencia" class="form-control form-control-lg border-2" 
+                                   placeholder="Ej: 123456" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="fw-bold text-dark mb-2">4. Adjuntar Comprobante (Capture)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-2"><i class="fas fa-image text-muted"></i></span>
+                            <input type="file" name="comprobante" class="form-control border-2" accept="image/*,application/pdf" required>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Asegúrate de que el número de referencia sea visible.</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-sm py-3 mt-2 rounded-pill">
+                        <i class="fas fa-check-circle me-2"></i>NOTIFICAR PAGO AHORA
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const tasa = parseFloat("{{ tasa }}".replace(',', '.'));
+        const maxBs = parseFloat("{{ saldo_bs }}".replace(',', '.'));
+        const maxUsd = parseFloat("{{ saldo_usd }}".replace(',', '.'));
+        
+        const inputBs = document.getElementById('inputMontoBs');
+        const inputUsd = document.getElementById('inputMontoUsd');
+        const containerBs = document.getElementById('containerBs');
+        const containerUsd = document.getElementById('containerUsd');
+        const msgSeleccion = document.getElementById('mensajeSeleccion');
+        
+        const textConvUsd = document.getElementById('conversionUsdText');
+        const textConvBs = document.getElementById('conversionBsText');
+
+        // --- LÓGICA: MÁSCARA MONETARIA INTELIGENTE ---
+        function formatMoneyInput(e) {
+            let value = e.target.value.replace(/\D/g, ''); 
+            
+            if (value === '') {
+                e.target.value = '';
+                return 0; 
+            }
+            
+            let floatValue = parseFloat(value) / 100;
+            e.target.value = floatValue.toFixed(2);
+            
+            return floatValue; 
+        }
+
+        // --- NUEVA LÓGICA: INTERCEPTAR EL PEGADO (PASTE) ---
+        function handlePaste(e) {
+            e.preventDefault(); // Evitamos que el navegador pegue el texto en crudo
+            
+            // Obtenemos el texto del portapapeles
+            let pastedData = (e.clipboardData || window.clipboardData).getData('text');
+            
+            // Limpiamos: cambiamos comas por puntos y quitamos letras/simbolos (dejando solo números y puntos)
+            let cleanPasted = pastedData.replace(',', '.').replace(/[^0-9.]/g, '');
+            let parsedFloat = parseFloat(cleanPasted);
+
+            if (!isNaN(parsedFloat)) {
+                // Si es un número válido, lo seteamos con 2 decimales (ej: "15" -> "15.00")
+                e.target.value = parsedFloat.toFixed(2);
+                
+                // Disparamos el evento 'input' manualmente para que la máscara y las conversiones hagan su magia
+                e.target.dispatchEvent(new Event('input'));
+            }
+        }
+
+        // Asignamos el evento de pegar a ambos inputs
+        inputBs.addEventListener('paste', handlePaste);
+        inputUsd.addEventListener('paste', handlePaste);
+
+        // Lógica de Selección de Método
+        const radios = document.querySelectorAll('input[name="metodo"]');
+        radios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                const moneda = this.getAttribute('data-moneda');
+                
+                document.getElementById('textoCuentas').innerText = this.getAttribute('data-datos');
+                document.getElementById('cajaDatos').classList.remove('d-none');
+                msgSeleccion.style.display = 'none';
+
+                if(moneda === 'BS') {
+                    containerBs.style.display = 'block';
+                    inputBs.disabled = false;
+                    inputBs.required = true;
+                    // Resetear el otro
+                    containerUsd.style.display = 'none';
+                    inputUsd.disabled = true;
+                    inputUsd.value = ''; 
+                    textConvUsd.innerHTML = `Equivalente: <strong class="text-success">$0.00</strong>`;
+                    inputBs.classList.remove('is-invalid');
+                } else {
+                    containerUsd.style.display = 'block';
+                    inputUsd.disabled = false;
+                    inputUsd.required = true;
+                    // Resetear el otro
+                    containerBs.style.display = 'none';
+                    inputBs.disabled = true;
+                    inputBs.value = '';
+                    textConvBs.innerHTML = `Equivalente: <strong class="text-primary">Bs. 0.00</strong>`;
+                    inputUsd.classList.remove('is-invalid');
+                }
+            });
+        });
+
+        // Eventos Input (Aplicando la máscara y calculando)
+        inputBs.addEventListener('input', function(e) {
+            let bs = formatMoneyInput(e);
+            
+            if (bs > maxBs) {
+                this.value = maxBs.toFixed(2);
+                bs = maxBs;
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+
+            let usd = bs / tasa;
+            textConvUsd.innerHTML = `Equivalente: <strong class="text-success">$${usd.toFixed(2)}</strong>`;
+        });
+
+        inputUsd.addEventListener('input', function(e) {
+            let usd = formatMoneyInput(e);
+            
+            if (usd > maxUsd) {
+                this.value = maxUsd.toFixed(2);
+                usd = maxUsd;
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+
+            let bs = usd * tasa;
+            textConvBs.innerHTML = `Equivalente: <strong class="text-primary">Bs. ${bs.toFixed(2)}</strong>`;
+        });
+    });
+
+    function copiarAlPortapapeles() {
+        const texto = document.getElementById('textoCuentas').innerText;
+        navigator.clipboard.writeText(texto).then(() => {
+            alert("✅ Datos de la cuenta copiados.");
+        });
+    }
+</script>
+
+<style>
+    /* Diseño Profesional Light Mode */
+    .card-radio {
+        transition: all 0.2s ease-in-out;
+        border: 2px solid #edeff2;
+        background-color: #fff;
+        color: #5a5c69;
+        border-radius: 12px;
+        cursor: pointer;
+    }
+    .card-radio:hover {
+        background-color: #f8f9fc;
+        border-color: #4e73df;
+    }
+    .btn-check:checked + .card-radio {
+        background-color: #f0f4ff;
+        border-color: #4e73df;
+        color: #4e73df !important;
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(78, 115, 223, 0.1);
+    }
+    input[type="number"], input[type="file"] {
+        border-radius: 8px;
+    }
+    input[type="file"] {
+        padding: 7px;
+        border: 2px solid #dee2e6;
+        border-left: 0;
+        border-radius: 0 10px 10px 0;
+    }
+    .form-control:focus {
+        border-color: #4e73df;
+        box-shadow: none;
+    }
+</style>
+{% endblock %}

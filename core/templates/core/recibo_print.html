@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recibo #{{ deuda.id }}</title>
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; padding: 40px; max-width: 800px; margin: 0 auto; }
+        .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 20px; margin-bottom: 20px; }
+        .details { margin-bottom: 20px; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .total { border-top: 2px solid #000; padding-top: 10px; font-weight: bold; font-size: 1.2em; }
+        .btn-print { display: block; width: 100%; padding: 10px; background: #333; color: #fff; text-align: center; text-decoration: none; margin-bottom: 20px; }
+        @media print { .btn-print { display: none; } }
+    </style>
+</head>
+<body>
+    <a href="#" onclick="window.print()" class="btn-print">IMPRIMIR / GUARDAR PDF</a>
+
+    <div class="header">
+        <h2>{{ deuda.socio.configsistema_set.first.nombre_linea|default:"LÍNEA DE CONDUCTORES UNIDOS R.L." }}</h2>
+        <p>RIF: J-12345678-9 | Caracas, Venezuela</p>
+        <h3>AVISO DE COBRO N° {{ deuda.id|stringformat:"06d" }}</h3>
+    </div>
+
+    <div class="details">
+        <div class="row">
+            <span>SOCIO:</span>
+            <span>{{ deuda.socio.nombre }} (Unidad {{ deuda.socio.unidad }})</span>
+        </div>
+        <div class="row">
+            <span>CÉDULA:</span>
+            <span>{{ deuda.socio.cedula }}</span>
+        </div>
+        <div class="row">
+            <span>FECHA EMISIÓN:</span>
+            <span>{{ deuda.fecha_generada|date:"d/m/Y" }}</span>
+        </div>
+        <div class="row">
+            <span>CONCEPTO:</span>
+            <span>{{ deuda.descripcion }}</span>
+        </div>
+        {% if deuda.tipo == 'AUDITORIA' %}
+        <div class="row">
+            <span>NOTA:</span>
+            <span>*DEUDA RECUPERADA DE GESTIÓN ANTERIOR*</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="total">
+        <div class="row">
+            <span>MONTO DIVISA:</span>
+            <span>$ {{ deuda.monto_dolares }}</span>
+        </div>
+        <div class="row">
+            <span>TASA DE CAMBIO:</span>
+            <span>Bs. {{ tasa }}</span>
+        </div>
+        <div class="row">
+            <span>TOTAL A PAGAR:</span>
+            <span>Bs. {{ monto_bs|floatformat:2 }}</span>
+        </div>
+    </div>
+
+    <br><br>
+    <center><small>Generado automáticamente por el Sistema de Gestión.</small></center>
+</body>
+</html>

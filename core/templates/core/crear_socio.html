@@ -1,0 +1,43 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width: 600px;">
+    <div class="card shadow border-0" style="border-radius: 15px;">
+        <div class="card-header bg-dark text-white py-3">
+            <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i> Registrar Nuevo Socio</h5>
+        </div>
+        <div class="card-body p-4">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="fw-bold text-dark">Nombre del Conductor</label>
+                        {{ form.nombre.errors }}
+                        <input type="text" name="nombre" class="form-control border-dark" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-dark">Usuario (Cédula)</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-dark">Unidad #</label>
+                        <input type="number" name="unidad" class="form-control" required>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="fw-bold text-dark">Contraseña Inicial</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="col-md-12 mb-4">
+                        <label class="fw-bold text-dark">Teléfono</label>
+                        <input type="text" name="telefono" class="form-control" placeholder="Ej: 04141234567">
+                    </div>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-dark btn-lg fw-bold shadow">
+                        CREAR SOCIO Y ACCESO
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
