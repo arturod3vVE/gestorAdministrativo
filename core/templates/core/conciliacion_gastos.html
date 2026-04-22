@@ -39,7 +39,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Gastos (Egresos)</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ total_gastos }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ total_gastos|floatformat:2 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-arrow-down fa-2x text-gray-300" style="opacity: 0.3;"></i>
@@ -55,8 +55,8 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Facturado a Socios</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ total_facturado }}</div>
-                            <small class="text-muted">Por Cobrar: ${{ brecha_recaudacion }}</small>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ total_facturado|floatformat:2 }}</div>
+                            <small class="text-muted">Por Cobrar: ${{ brecha_recaudacion|floatformat:2 }}</small>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-file-invoice fa-2x text-gray-300" style="opacity: 0.3;"></i>
@@ -74,7 +74,7 @@
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Ingreso Real (Banco)</div>
                             <div class="row no-gutters align-items-center">
                                 <div class="col-auto">
-                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">${{ total_recaudado }}</div>
+                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">${{ total_recaudado|floatformat:2 }}</div>
                                 </div>
                             </div>
                             <div class="progress progress-sm mt-2" style="height: 5px;">
@@ -97,7 +97,7 @@
                             <div class="text-xs font-weight-bold text-uppercase mb-1 {% if balance_caja >= 0 %}text-success{% else %}text-danger{% endif %}">
                                 Balance de Caja (Real)
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ balance_caja }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ balance_caja|floatformat:2 }}</div>
                             <small class="{% if balance_caja >= 0 %}text-success{% else %}text-danger{% endif %}">
                                 {% if balance_caja >= 0 %}Superávit Operativo{% else %}Déficit Operativo{% endif %}
                             </small>
