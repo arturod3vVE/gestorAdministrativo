@@ -99,3 +99,25 @@ class BitacoraAuditoriaAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Solo los superusuarios pueden borrar logs (por limpieza de BD)."""
         return request.user.is_superuser
+    
+from django.contrib import admin
+from .models import Pago  # Asegúrate de importar también Socio y AvisoCobro si quieres verlos
+
+@admin.register(Pago)
+class PagoAdmin(admin.ModelAdmin):
+    # Columnas que se verán en la lista principal
+    list_display = ('referencia', 'get_socio', 'monto_dolares', 'estado', 'fecha_reporte')
+    
+    # Filtros laterales para encontrar pagos rápido
+    list_filter = ('estado', 'metodo', 'fecha_reporte')
+    
+    # Buscador por referencia o nombre del socio
+    search_fields = ('referencia', 'aviso__socio__nombre', 'aviso__socio__unidad')
+    
+    # Para que no se pueda editar la tasa o los montos una vez registrados (opcional)
+    readonly_fields = ('fecha_reporte',)
+
+    # Función auxiliar para mostrar el socio en la lista
+    def get_socio(self, obj):
+        return obj.aviso.socio
+    get_socio.short_description = 'Socio'
