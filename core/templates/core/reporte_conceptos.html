@@ -1,0 +1,83 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📊 Reporte Contable por Conceptos</h2>
+        
+        <a href="?anio={{ anio_sel }}&mes={{ mes_sel }}&export=excel" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+        </a>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Año</label>
+                    <select name="anio" class="form-select">
+                        {% for a in anios_disponibles %}
+                        <option value="{{ a }}" {% if a == anio_sel %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Mes</label>
+                    <select name="mes" class="form-select">
+                        {% for num, nombre in meses_nombres %}
+                        <option value="{{ num }}" {% if num == mes_sel %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar Reporte</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Desglose de Facturación (Periodo: {{ mes_sel }}/{{ anio_sel }})</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Concepto Cobrado</th>
+                            <th class="text-center">Veces Aplicado (A Socios)</th>
+                            <th class="text-end">Monto Total Proyectado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in desglose %}
+                        <tr>
+                            <td><strong>{{ item.descripcion }}</strong></td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary rounded-pill">{{ item.cantidad_cargos }}</span>
+                            </td>
+                            <td class="text-end text-success fw-bold">
+                                ${{ item.total_usd }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted">
+                                No se encontraron cargos facturados para este mes.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if desglose %}
+                    <tfoot class="table-dark">
+                        <tr>
+                            <th colspan="2" class="text-end">TOTAL FACTURADO ESTE MES:</th>
+                            <th class="text-end text-warning fs-5">${{ total_mes_usd }}</th>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

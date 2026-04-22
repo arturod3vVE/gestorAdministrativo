@@ -1782,3 +1782,84 @@ def validar_solvencia(request, slug_verificacion):
     }
     # Usaremos un template "limpio" diseñado para móviles
     return render(request, 'core/validar_solvencia.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def reporte_financiero_conceptos(request):
+    hoy = timezone.now()
+    anio_sel = int(request.GET.get('anio', hoy.year))
+    mes_sel = int(request.GET.get('mes', hoy.month))
+
+    # 1. Obtener años disponibles para el filtro
+    anios_disponibles = AvisoCobro.objects.values_list('anio', flat=True).distinct().order_by('-anio')
+    if not anios_disponibles:
+        anios_disponibles = [hoy.year]
+
+    # 2. Consultar y agrupar los ítems facturados en ese periodo
+    # Agrupamos por 'descripcion' y sumamos los montos
+    desglose_conceptos = ItemAviso.objects.filter(
+        aviso__anio=anio_sel, 
+        aviso__mes=mes_sel
+    ).values('descripcion').annotate(
+        total_usd=Sum('monto_dolares'),
+        cantidad_cargos=Count('id')
+    ).order_by('-total_usd')
+
+    # Total general del mes
+    total_mes_usd = sum((item['total_usd'] for item in desglose_conceptos), Decimal('0.00'))
+
+    # --- LÓGICA DE EXPORTACIÓN A EXCEL ---
+    if request.GET.get('export') == 'excel':
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Reporte_{mes_sel}_{anio_sel}"
+
+        # Estilos de encabezado
+        header_fill = PatternFill(start_color="0D6EFD", end_color="0D6EFD", fill_type="solid")
+        header_font = Font(color="FFFFFF", bold=True)
+
+        ws.append(['Concepto Billed', 'Cantidad de Cargos Generados', 'Total Proyectado (USD)'])
+        
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+
+        # Llenar datos
+        for item in desglose_conceptos:
+            ws.append([
+                item['descripcion'], 
+                item['cantidad_cargos'], 
+                float(item['total_usd']) # Excel maneja mejor floats que Decimals
+            ])
+            
+        # Fila de totales
+        ws.append(['', 'TOTAL FACTURADO:', float(total_mes_usd)])
+        ws[ws.max_row][1].font = Font(bold=True)
+        ws[ws.max_row][2].font = Font(bold=True)
+
+        # Ajustar anchos
+        ws.column_dimensions['A'].width = 40
+        ws.column_dimensions['B'].width = 30
+        ws.column_dimensions['C'].width = 25
+
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename=Desglose_Conceptos_{mes_sel}_{anio_sel}.xlsx'
+        wb.save(response)
+        return response
+
+    # Nombres de meses para el selector HTML
+    meses_nombres = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+    ]
+
+    context = {
+        'desglose': desglose_conceptos,
+        'total_mes_usd': total_mes_usd,
+        'anio_sel': anio_sel,
+        'mes_sel': mes_sel,
+        'anios_disponibles': anios_disponibles,
+        'meses_nombres': meses_nombres,
+    }
+    return render(request, 'core/reporte_conceptos.html', context)

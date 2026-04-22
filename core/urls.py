@@ -33,6 +33,7 @@ urlpatterns = [
     path('contabilidad/cerrar-mes/', views.cerrar_mes_contable, name='cerrar_mes_contable'),
     path('administracion/auditoria/', views.bitacora_auditoria, name='bitacora_auditoria'),
     path('contabilidad/periodos/', views.gestion_periodos, name='gestion_periodos'),
+    path('contabilidad/reporte-conceptos/', views.reporte_financiero_conceptos, name='reporte_conceptos'),
     path('historial-pagos/', views.historial_pagos, name='historial_pagos'),
 
     # Conceptos
