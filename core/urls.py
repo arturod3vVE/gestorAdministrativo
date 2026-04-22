@@ -42,7 +42,7 @@ urlpatterns = [
 
     # Portal del Socio
     path('portal/', views.portal_socio, name='portal_socio'),
-    path('factura-mensual/<int:mes>/<int:anio>/', views.factura_mensual, name='factura_mensual'),
+    path('recibo-mensual/<int:mes>/<int:anio>/', views.recibo_mensual, name='recibo_mensual'),
     path('mis-pagos/', views.mis_pagos, name='mis_pagos'),
     path('configuracion-perfil/', views.configuracion_perfil, name='configuracion_perfil'),
     

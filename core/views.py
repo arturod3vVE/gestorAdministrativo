@@ -15,6 +15,7 @@ import json
 import csv
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Sum, Q, Case, When, Value, DecimalField, Count
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from datetime import timedelta
 from .models import *
@@ -251,22 +252,29 @@ def reportar_pago(request, aviso_id):
     return render(request, 'core/form_pago.html', context)
 
 @login_required
-def factura_mensual(request, mes, anio):
+def recibo_mensual(request, mes, anio):
     socio = request.user.socio
     config = ConfigSistema.objects.first()
-    tasa = config.tasa_bcv
+    tasa = config.tasa_bcv if config else Decimal('0.0000')
 
     aviso = AvisoCobro.objects.filter(socio=socio, mes=mes, anio=anio).first()
     detalles = aviso.detalles.all() if aviso else []
     
-    total_usd = sum(c.monto_dolares for c in detalles)
-    total_bs = float(total_usd) * float(tasa)
+    # Sumatoria pura en Decimal
+    total_usd = sum((c.monto_dolares for c in detalles), Decimal('0.00'))
+    total_bs = (total_usd * tasa).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    
     meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
 
-    return render(request, 'core/factura_mensual.html', {
-        'aviso': aviso, 'cargos': detalles, 'total_usd': total_usd,
-        'total_bs': total_bs, 'tasa': tasa, 'mes_nombre': meses[int(mes)-1],
-        'anio': anio, 'config': config
+    return render(request, 'core/recibo_mensual.html', {
+        'aviso': aviso, 
+        'cargos': detalles, 
+        'total_usd': total_usd,
+        'total_bs': total_bs, 
+        'tasa': tasa, 
+        'mes_nombre': meses[int(mes)-1],
+        'anio': anio, 
+        'config': config
     })
 
 
@@ -477,69 +485,53 @@ def dashboard(request):
 
 @login_required
 def lista_transparencia(request):
-    # 1. Traemos los socios, pero le pedimos a la BD que pre-calcule los totales
-    # de cada aviso usando Coalesce para que nunca recibamos un 'None'
-    socios_list = Socio.objects.all().prefetch_related(
-        'avisos',
-        'avisos__detalles',
-        'avisos__pagos'
+    socios_qs = Socio.objects.annotate(
+        total_facturado=Coalesce(
+            Sum('avisos__detalles__monto_dolares', filter=~Q(avisos__estado='PAGADO')), 
+            Value(Decimal('0.00')), 
+            output_field=DecimalField()
+        ),
+        total_pagado=Coalesce(
+            Sum('avisos__pagos__monto_dolares', filter=Q(avisos__pagos__estado='APROBADO') & ~Q(avisos__estado='PAGADO')), 
+            Value(Decimal('0.00')), 
+            output_field=DecimalField()
+        )
+    ).annotate(
+        # La base de datos hace la resta por nosotros
+        deuda_total=F('total_facturado') - F('total_pagado')
     ).order_by('unidad')
 
-    # 2. Procesamos la lógica de negocio en Python (tu estilo preferido)
-    for socio in socios_list:
-        # Solo tomamos avisos que no estén marcados como pagados
-        avisos = socio.avisos.exclude(estado='PAGADO')
-        deuda_acumulada = Decimal('0.00')
-
-        for aviso in avisos:
-            # Usamos sum() de Python sobre los detalles ya cargados en memoria
-            # CAMBIO: sumamos partiendo desde Decimal('0.00')
-            fac = sum((d.monto_dolares for d in aviso.detalles.all()), Decimal('0.00'))
-            
-            # Filtramos los pagos aprobados del aviso
-            # CAMBIO: sumamos partiendo desde Decimal('0.00')
-            pag = sum((p.monto_dolares for p in aviso.pagos.all() if p.estado == 'APROBADO'), Decimal('0.00'))
-            
-            deuda_acumulada += (fac - pag)
-        
-        # CAMBIO: Quitamos el casteo a float()
-        socio.deuda_total = deuda_acumulada
-
-    # 3. Capturamos los filtros del buscador
+    # 2. Capturamos filtros
     query = request.GET.get('q')
     status_filter = request.GET.get('status')
     debt_filter = request.GET.get('debt')
 
-    # 4. Lógica de filtrado en Python (Fiel a tu código original)
+    # 3. Aplicamos filtros directamente en la BD (Súper eficiente)
     if query:
-        query = query.lower()
-        socios_list = [
-            s for s in socios_list 
-            if query in s.nombre.lower() or query in s.unidad or query in s.cedula
-        ]
+        socios_qs = socios_qs.filter(Q(nombre__icontains=query) | Q(unidad__icontains=query) | Q(cedula__icontains=query))
 
     if status_filter == 'activo':
-        socios_list = [s for s in socios_list if s.activo]
+        socios_qs = socios_qs.filter(activo=True)
     elif status_filter == 'inactivo':
-        socios_list = [s for s in socios_list if not s.activo]
+        socios_qs = socios_qs.filter(activo=False)
 
     if debt_filter == 'con_deuda':
-        # CAMBIO: Comparación estricta con Decimal('0.01')
-        socios_list = [s for s in socios_list if s.deuda_total > Decimal('0.01')]
+        socios_qs = socios_qs.filter(deuda_total__gt=Decimal('0.01'))
     elif debt_filter == 'solvente':
-        # CAMBIO: Comparación estricta con Decimal('0.01')
-        socios_list = [s for s in socios_list if s.deuda_total <= Decimal('0.01')]
+        socios_qs = socios_qs.filter(deuda_total__lte=Decimal('0.01'))
 
-    # 5. Paginación y Totales
-    paginator = Paginator(socios_list, 10)
+    # 4. Paginación
+    paginator = Paginator(socios_qs, 10)
     page_number = request.GET.get('page')
     socios_paginados = paginator.get_page(page_number)
 
-    # CAMBIO: sum() partiendo desde Decimal('0.00')
-    total_global_deuda = sum((s.deuda_total for s in socios_list), Decimal('0.00'))
+    # 5. Totales Globales (Directo en la BD)
+    totales = socios_qs.aggregate(
+        gran_total_deuda=Sum('deuda_total')
+    )
+    total_global_deuda = totales['gran_total_deuda'] or Decimal('0.00')
     
-    # CAMBIO: Comparación estricta con Decimal('0.01')
-    socios_solventes_count = sum(1 for s in socios_list if s.deuda_total <= Decimal('0.01'))
+    socios_solventes_count = socios_qs.filter(deuda_total__lte=Decimal('0.01')).count()
 
     return render(request, 'core/transparencia.html', {
         'socios': socios_paginados, 
@@ -654,48 +646,37 @@ def generar_cobros_masivos(request):
 
     return render(request, 'core/generar_masivo.html', {'conceptos': conceptos})
 
-@user_passes_test(es_admin)
+@login_required
 @user_passes_test(es_admin)
 def modulo_cobranza(request):
-    socios = Socio.objects.filter(activo=True).prefetch_related('avisos__detalles', 'avisos__pagos')
-    socios_pendientes = []
-    
-    # CAMBIO 1: Iniciamos el acumulador global de dinero en Decimal
-    total_global_usd = Decimal('0.00')
-    
-    # Este se queda en 0 (entero) porque es un contador de cantidad de pagos, no de dinero
-    pagos_por_aprobar_total = 0 
+    # Anotamos los cálculos directamente en la base de datos
+    socios_pendientes = Socio.objects.filter(activo=True).annotate(
+        total_facturado=Coalesce(
+            Sum('avisos__detalles__monto_dolares', filter=~Q(avisos__estado='PAGADO')), 
+            Value(Decimal('0.00')), output_field=DecimalField()
+        ),
+        total_aprobado=Coalesce(
+            Sum('avisos__pagos__monto_dolares', filter=Q(avisos__pagos__estado='APROBADO') & ~Q(avisos__estado='PAGADO')), 
+            Value(Decimal('0.00')), output_field=DecimalField()
+        ),
+        pagos_nuevos=Count('avisos__pagos', filter=Q(avisos__pagos__estado='REVISION')),
+        # Usamos distinct=True para que los JOINs no dupliquen las facturas
+        cantidad_facturas=Count('avisos', filter=~Q(avisos__estado='PAGADO'), distinct=True)
+    ).annotate(
+        total_pendiente=F('total_facturado') - F('total_aprobado')
+    ).filter(
+        # Solo traemos a los que deben dinero o tienen pagos por revisar
+        Q(total_pendiente__gt=Decimal('0.00')) | Q(pagos_nuevos__gt=0)
+    ).order_by('unidad')
 
-    for socio in socios:
-        avisos = socio.avisos.exclude(estado='PAGADO')
-        
-        # CAMBIO 2: Iniciamos la deuda del socio en Decimal
-        deuda_socio = Decimal('0.00')
-        pagos_nuevos = 0
-        cantidad_facturas = 0
-        
-        for aviso in avisos:
-            # CAMBIO 3: Extirpamos el float() y sumamos desde Decimal('0.00')
-            fac = sum((d.monto_dolares for d in aviso.detalles.all()), Decimal('0.00'))
-            pag = sum((p.monto_dolares for p in aviso.pagos.filter(estado='APROBADO')), Decimal('0.00'))
-            
-            # Este sum se queda con 1 (entero) porque solo cuenta cuántos pagos hay en revisión
-            revision = sum(1 for p in aviso.pagos.filter(estado='REVISION'))
-            
-            # CAMBIO 4: Condicional comparado estrictamente contra Decimal('0.00')
-            if (fac - pag) > Decimal('0.00'):
-                deuda_socio += (fac - pag)
-                cantidad_facturas += 1
-            pagos_nuevos += revision
-            
-        if cantidad_facturas > 0 or pagos_nuevos > 0:
-            socio.total_pendiente = deuda_socio
-            socio.cantidad_facturas = cantidad_facturas
-            socio.pagos_nuevos = pagos_nuevos
-            socios_pendientes.append(socio)
-            
-            total_global_usd += deuda_socio
-            pagos_por_aprobar_total += pagos_nuevos
+    # Calcular totales globales en una sola consulta
+    totales_globales = socios_pendientes.aggregate(
+        suma_deuda=Sum('total_pendiente'),
+        suma_revisiones=Sum('pagos_nuevos')
+    )
+    
+    total_global_usd = totales_globales['suma_deuda'] or Decimal('0.00')
+    pagos_por_aprobar_total = totales_globales['suma_revisiones'] or 0
 
     return render(request, 'core/cobranza.html', {
         'socios': socios_pendientes,
@@ -1010,19 +991,34 @@ from django.db.models import Sum
 def revision_transferencia_admin(request, pago_id):
     if not request.user.is_staff:
         return redirect('dashboard')
+        
     pago_base = get_object_or_404(Pago, id=pago_id)
     referencia = pago_base.referencia
     socio_id = pago_base.aviso.socio.id
-    pagos = Pago.objects.filter(referencia=referencia, aviso__socio_id=socio_id).select_related('aviso', 'metodo')
     
-    total_transferencia_usd = sum(float(p.monto_dolares) for p in pagos)
-    total_transferencia_bs = sum(float(p.monto_bolivares) for p in pagos)
+    pagos = Pago.objects.filter(
+        referencia=referencia, 
+        aviso__socio_id=socio_id
+    ).select_related('aviso', 'metodo')
+    
+    totales = pagos.aggregate(
+        usd=Sum('monto_dolares'),
+        bs=Sum('monto_bolivares')
+    )
+    
+    total_transferencia_usd = totales['usd'] or Decimal('0.00')
+    total_transferencia_bs = totales['bs'] or Decimal('0.00')
 
     return render(request, 'core/revision_transferencia.html', {
-        'pagos': pagos, 'socio': pago_base.aviso.socio, 'referencia': referencia,
-        'metodo': pago_base.metodo, 'comprobante': pago_base.comprobante,
-        'fecha_pago': pago_base.fecha_reporte, 'estado_global': pago_base.estado,
-        'total_usd': total_transferencia_usd, 'total_bs': total_transferencia_bs,
+        'pagos': pagos, 
+        'socio': pago_base.aviso.socio, 
+        'referencia': referencia,
+        'metodo': pago_base.metodo, 
+        'comprobante': pago_base.comprobante,
+        'fecha_pago': pago_base.fecha_reporte, 
+        'estado_global': pago_base.estado,
+        'total_usd': total_transferencia_usd, 
+        'total_bs': total_transferencia_bs,
         'pago_id_ejemplo': pago_base.id
     })
 
