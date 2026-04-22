@@ -77,6 +77,7 @@ class ConceptoCobro(models.Model):
 
 
 # --- 3. SOCIOS (DUEÑOS) ---
+# --- 3. SOCIOS (DUEÑOS) ---
 class Socio(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     nombre = models.CharField(max_length=100, verbose_name="Nombre del Socio (Dueño)")
@@ -110,19 +111,19 @@ class Socio(models.Model):
 
     @property
     def es_solvente(self):
-        # 1. Obtenemos la configuración (o usamos 5 por defecto si no existe)
+        # 1. Obtenemos la configuración (o usamos 30 por defecto si no existe)
         config = ConfigSistema.objects.first()
         plazo = config.dias_gracia if config else 30
         
         # 2. Calculamos el "Punto de Corte"
-        # Si un aviso fue creado DESPUÉS de esta fecha, todavía está en periodo de gracia.
-        fecha_limite = timezone.now() - timedelta(days=plazo)
+        # Usamos .date() para asegurar compatibilidad de tipos
+        fecha_limite = timezone.now().date() - timedelta(days=plazo)
 
         # 3. Buscamos avisos de deuda que ya pasaron el periodo de gracia
-        # lt = Less Than (creados hace más tiempo que los días permitidos)
+        # CORREGIDO: Cambiamos fecha_creacion a fecha_emision
         deudas_vencidas = self.avisos.filter(
             estado__in=['PENDIENTE', 'PARCIAL'],
-            fecha_creacion__lt=fecha_limite 
+            fecha_emision__lt=fecha_limite 
         ).exists()
 
         return not deudas_vencidas
