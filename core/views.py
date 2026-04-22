@@ -1859,3 +1859,70 @@ def reporte_financiero_conceptos(request):
         'meses_nombres': meses_nombres,
     }
     return render(request, 'core/reporte_conceptos.html', context)
+
+@login_required
+@user_passes_test(es_admin)
+def conciliacion_gastos(request):
+    hoy = timezone.now()
+    anio_sel = int(request.GET.get('anio', hoy.year))
+    mes_sel = int(request.GET.get('mes', hoy.month))
+
+    # 1. EGRESOS (El dinero que salió de la línea)
+    gastos_mes = GastoGeneral.objects.filter(
+        fecha_factura__year=anio_sel,
+        fecha_factura__month=mes_sel
+    ).order_by('-fecha_factura')
+    
+    total_gastos = gastos_mes.aggregate(total=Sum('monto_total_usd'))['total'] or Decimal('0.00')
+
+    # 2. INGRESOS PROYECTADOS (Lo que se le cobró a los socios ese mes)
+    avisos_mes = AvisoCobro.objects.filter(anio=anio_sel, mes=mes_sel)
+    
+    total_facturado = ItemAviso.objects.filter(
+        aviso__in=avisos_mes
+    ).aggregate(total=Sum('monto_dolares'))['total'] or Decimal('0.00')
+
+    # 3. INGRESOS REALES (El dinero que ya está aprobado en banco para ese mes)
+    total_recaudado = Pago.objects.filter(
+        aviso__in=avisos_mes,
+        estado='APROBADO'
+    ).aggregate(total=Sum('monto_dolares'))['total'] or Decimal('0.00')
+
+    # 4. MÉTRICAS FINANCIERAS CLAVE
+    # Dinero que está en la calle (Cuentas por cobrar)
+    brecha_recaudacion = total_facturado - total_recaudado
+    
+    # El balance real de la caja: Lo que entró menos lo que salió
+    balance_caja = total_recaudado - total_gastos
+
+    # Eficiencia de cobranza (Porcentaje)
+    eficiencia = 0
+    if total_facturado > Decimal('0.00'):
+        eficiencia = int((total_recaudado / total_facturado) * 100)
+
+    # Listas para los filtros HTML
+    anios_disponibles = AvisoCobro.objects.values_list('anio', flat=True).distinct().order_by('-anio')
+    if not anios_disponibles:
+        anios_disponibles = [hoy.year]
+        
+    meses_nombres = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+    ]
+
+    context = {
+        'anio_sel': anio_sel,
+        'mes_sel': mes_sel,
+        'anios_disponibles': anios_disponibles,
+        'meses_nombres': meses_nombres,
+        'gastos': gastos_mes,
+        'total_gastos': total_gastos,
+        'total_facturado': total_facturado,
+        'total_recaudado': total_recaudado,
+        'brecha_recaudacion': brecha_recaudacion,
+        'balance_caja': balance_caja,
+        'eficiencia': eficiencia
+    }
+    
+    return render(request, 'core/conciliacion_gastos.html', context)

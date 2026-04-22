@@ -189,6 +189,10 @@
                         <i class="fas fa-cogs"></i> Configurar Cuentas
                     </a>
 
+                    <a class="list-group-item list-group-item-action" href="{% url 'conciliacion_gastos' %}">
+                        <i class="fas fa-scale-balanced"></i> Balance Operativo
+                    </a>
+
                     <a class="list-group-item list-group-item-action" href="{% url 'bitacora_auditoria' %}">
                         <i class="fas fa-shield-alt text-danger"></i> Bitácora Auditoría
                     </a>
@@ -336,9 +340,7 @@
         });
         {% endif %}
 
-        // ==========================================
-        // 3. ATAJOS DE ADMINISTRACIÓN (Shift+Alt+I)
-        // ==========================================
+        
         {% if user.is_staff %}
         document.addEventListener('keydown', function(e) {
             if (e.shiftKey && e.altKey && e.key.toLowerCase() === 'i') {

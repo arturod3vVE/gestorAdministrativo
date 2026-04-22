@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>⚖️ Conciliación y Balance Operativo</h2>
+    </div>
+
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-body bg-light rounded">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label text-muted fw-bold">Año Fiscal</label>
+                    <select name="anio" class="form-select border-secondary">
+                        {% for a in anios_disponibles %}
+                        <option value="{{ a }}" {% if a == anio_sel %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-muted fw-bold">Mes Contable</label>
+                    <select name="mes" class="form-select border-secondary">
+                        {% for num, nombre in meses_nombres %}
+                        <option value="{{ num }}" {% if num == mes_sel %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">Generar Balance</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2" style="border-left: 4px solid #dc3545;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Gastos (Egresos)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ total_gastos }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-arrow-down fa-2x text-gray-300" style="opacity: 0.3;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2" style="border-left: 4px solid #0d6efd;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Facturado a Socios</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ total_facturado }}</div>
+                            <small class="text-muted">Por Cobrar: ${{ brecha_recaudacion }}</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-invoice fa-2x text-gray-300" style="opacity: 0.3;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2" style="border-left: 4px solid #198754;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Ingreso Real (Banco)</div>
+                            <div class="row no-gutters align-items-center">
+                                <div class="col-auto">
+                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">${{ total_recaudado }}</div>
+                                </div>
+                            </div>
+                            <div class="progress progress-sm mt-2" style="height: 5px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ eficiencia }}%"></div>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300" style="opacity: 0.3;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow h-100 py-2" style="border-left: 4px solid {% if balance_caja >= 0 %}#198754{% else %}#dc3545{% endif %}; background-color: {% if balance_caja < 0 %}#fff5f5{% endif %};">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1 {% if balance_caja >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                Balance de Caja (Real)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ balance_caja }}</div>
+                            <small class="{% if balance_caja >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {% if balance_caja >= 0 %}Superávit Operativo{% else %}Déficit Operativo{% endif %}
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-scale-balanced fa-2x text-gray-300" style="opacity: 0.3;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white">
+            <h6 class="m-0 font-weight-bold"><i class="fas fa-list"></i> Detalle de Egresos Registrados ({{ mes_sel }}/{{ anio_sel }})</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha de Factura</th>
+                            <th>Concepto / Proveedor</th>
+                            <th class="text-end">Monto Total</th>
+                            <th class="text-center">Comprobante</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gasto in gastos %}
+                        <tr>
+                            <td>{{ gasto.fecha_factura|date:"d/m/Y" }}</td>
+                            <td><strong>{{ gasto.concepto }}</strong></td>
+                            <td class="text-end text-danger fw-bold">${{ gasto.monto_total_usd }}</td>
+                            <td class="text-center">
+                                {% if gasto.comprobante %}
+                                    <a href="{{ gasto.comprobante.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-paperclip"></i> Ver Soporte
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted small">Sin archivo</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">
+                                No se registraron gastos para este periodo.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

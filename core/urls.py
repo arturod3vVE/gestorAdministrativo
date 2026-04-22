@@ -34,6 +34,7 @@ urlpatterns = [
     path('administracion/auditoria/', views.bitacora_auditoria, name='bitacora_auditoria'),
     path('contabilidad/periodos/', views.gestion_periodos, name='gestion_periodos'),
     path('contabilidad/reporte-conceptos/', views.reporte_financiero_conceptos, name='reporte_conceptos'),
+    path('contabilidad/conciliacion/', views.conciliacion_gastos, name='conciliacion_gastos'),
     path('historial-pagos/', views.historial_pagos, name='historial_pagos'),
 
     # Conceptos
