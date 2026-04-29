@@ -29,27 +29,31 @@ class ConfigSistema(models.Model):
     ultima_actualizacion = models.DateTimeField(auto_now=True) 
 
     def save(self, *args, **kwargs):
-        if self.pk:
-            original = ConfigSistema.objects.get(pk=self.pk)
-            user_audit = kwargs.pop('user_audit', None)
-            
-            # Auditoría para cambio de Tasa
-            if original.tasa_bcv != self.tasa_bcv:
-                BitacoraAuditoria.objects.create(
-                    admin=user_audit,
-                    accion='ACTUALIZAR_TASA',
-                    modulo='Configuración',
-                    descripcion=f"Tasa cambiada: {original.tasa_bcv} -> {self.tasa_bcv} Bs."
-                )
+        user_audit = kwargs.pop('user_audit', None)
+        
+        if not self._state.adding and self.pk:
+            try:
+                original = ConfigSistema.objects.get(pk=self.pk)
+                
+                # Auditoría para cambio de Tasa
+                if original.tasa_bcv != self.tasa_bcv:
+                    BitacoraAuditoria.objects.create(
+                        admin=user_audit,
+                        accion='ACTUALIZAR_TASA',
+                        modulo='Configuración',
+                        descripcion=f"Tasa cambiada: {original.tasa_bcv} -> {self.tasa_bcv} Bs."
+                    )
 
-            # Auditoría para cambio de Días de Gracia (Importante para control interno)
-            if original.dias_gracia != self.dias_gracia:
-                BitacoraAuditoria.objects.create(
-                    admin=user_audit,
-                    accion='ACTUALIZAR_CONFIG',
-                    modulo='Configuración',
-                    descripcion=f"Días de gracia modificados: {original.dias_gracia} -> {self.dias_gracia} días."
-                )
+                # Auditoría para cambio de Días de Gracia (Importante para control interno)
+                if original.dias_gracia != self.dias_gracia:
+                    BitacoraAuditoria.objects.create(
+                        admin=user_audit,
+                        accion='ACTUALIZAR_CONFIG',
+                        modulo='Configuración',
+                        descripcion=f"Días de gracia modificados: {original.dias_gracia} -> {self.dias_gracia} días."
+                    )
+            except ConfigSistema.DoesNotExist:
+                pass
 
         super(ConfigSistema, self).save(*args, **kwargs)
 
@@ -76,7 +80,6 @@ class ConceptoCobro(models.Model):
         return f"{self.nombre}"
 
 
-# --- 3. SOCIOS (DUEÑOS) ---
 # --- 3. SOCIOS (DUEÑOS) ---
 class Socio(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
