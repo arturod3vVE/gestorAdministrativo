@@ -20,12 +20,13 @@ SECRET_KEY = 'django-insecure-cambiar-esto-por-una-clave-segura'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['arturod3v.pythonanywhere.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['arturod3v.pythonanywhere.com', 'localhost', '127.0.0.1' 'gestoradministrativo.onrender.com']
 
 CSRF_TRUSTED_ORIGINS = [
     'https://*.loca.lt',
      'http://192.168.110.128',
      'http://127.0.0.1',
+     "https://gestoradministrativo.onrender.com"
 ]
 
 SESSION_COOKIE_SAMESITE = 'Lax'
